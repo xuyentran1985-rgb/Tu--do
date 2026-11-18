@@ -198,6 +198,10 @@ const COLORS = [
   {id:'nau-dat',name:'Nâu đất',hex:'#7A4E2D',g:'tranh',d:3},
   {id:'reu',name:'Xanh rêu',hex:'#69692F',g:'tranh',d:3},
   {id:'gach',name:'Đỏ gạch',hex:'#B9502E',g:'tranh',d:2,accent:true},
+  {id:'bac',name:'Bạc / vàng trắng',hex:'#C9CDD3',g:'kl',d:1,metal:'hop'},
+  {id:'ngoc-trai',name:'Ngọc trai',hex:'#EEEAF0',g:'kl',d:1,metal:'hop'},
+  {id:'vang-hong',name:'Vàng hồng',hex:'#E2B4A6',g:'kl',d:1,metal:'tt'},
+  {id:'vang-kim',name:'Vàng kim',hex:'#D9B44A',g:'kl',d:2,metal:'tranh'},
   {id:'hoa-tiet',name:'Họa tiết nhiều màu',hex:'conic-gradient(#C4B5DD 0 25%,#A8C7E7 0 50%,#EBC2CB 0 75%,#25324F 0)',g:'tt',d:2,pattern:true},
 ];
 const C = Object.fromEntries(COLORS.map(c=>[c.id,c]));
@@ -211,6 +215,7 @@ const CATS = [
   {id:'outer',name:'Áo khoác',near:true},
   {id:'shoes',name:'Giày dép'},
   {id:'bag',name:'Túi'},
+  {id:'acc',name:'Phụ kiện'},
 ];
 const CAT = Object.fromEntries(CATS.map(c=>[c.id,c]));
 
@@ -269,7 +274,19 @@ const SHAPES = {
     ['vua','Túi vừa',0,null],
     ['to','Túi to / tote',0,null],
   ]},
+  acc:{label:'Loại phụ kiện',opts:[
+    ['thatlung','Thắt lưng',8,'Thắt lưng nhấn eo, cân lại phần hông'],
+    ['khan','Khăn quàng',4,'Khăn quàng kéo ánh nhìn lên gần mặt'],
+    ['daychuyen','Dây chuyền',4,'Dây chuyền dài tạo đường dọc, cổ thon hơn'],
+    ['khuyentai','Khuyên tai',4,'Khuyên tai làm sáng gương mặt'],
+    ['nhan','Nhẫn',0,null],
+    ['vongtay','Vòng tay',0,null],
+    ['dongho','Đồng hồ',0,null],
+    ['mu','Mũ',2,'Mũ đưa ánh nhìn lên trên'],
+    ['kinh','Kính',0,null],
+  ]},
 };
+const ACC_NEAR=['khan','daychuyen','khuyentai','mu','kinh'], ACC_METAL=['daychuyen','khuyentai','nhan','vongtay','dongho'];
 const LENGTHS = [['mini','Mini',-5,'Váy mini dừng ở đoạn đùi to'],['goi','Ngang gối',3,null],['midi','Midi',8,'Độ dài midi che đùi, chân thon hơn'],['maxi','Maxi',3,null]];
 const RISES = [['cao','Cạp cao',10,'Cạp cao kéo dài chân, lộ eo'],['vua','Cạp vừa',0,null],['thap','Cạp trễ',-10,'Cạp trễ làm thân dưới trông dài và nặng']];
 
@@ -352,8 +369,12 @@ function optLabel(list,id){return (list.find(o=>o[0]===id)||[])[1]||''}
 /* Chấm một món đồ theo vóc dáng + màu da */
 function rateItem(it){
   let s=60; const pos=[],neg=[];
-  const col=C[it.color]; const near=CAT[it.cat]?.near;
-  if(col){
+  const col=C[it.color]; const near=CAT[it.cat]?.near||(it.cat==='acc'&&ACC_NEAR.includes(it.shape));
+  if(col&&col.metal){ const close=ACC_NEAR.includes(it.shape);
+    if(col.metal==='hop'){s+=18;pos.push(`${col.name} hợp da True Summer, làm da sáng hơn`)}
+    else if(col.metal==='tt'){s+=4;pos.push('Vàng hồng dịu, dùng được')}
+    else {s-=close?18:8;neg.push(close?'Vàng kim là tông ấm, đeo gần mặt dễ làm da xỉn; ưu tiên bạc':'Vàng kim hơi ấm với da bạn, bạc sẽ hợp hơn')} }
+  if(col&&!col.metal){
     if(col.g==='hop'){s+=near?18:10; pos.push(`${col.name} là màu tông lạnh dịu, hợp da True Summer`)}
     else if(col.g==='tranh'){ if(near){s-=25;neg.push(`${col.name} là tông ấm, mặc gần mặt dễ làm da xỉn`)} else {s-=8;neg.push(`${col.name} hơi ấm, chỉ nên dùng điểm xuyết`)} }
     else if(col.g==='den'){ if(near){s-=12;neg.push('Đen tuyền sát mặt làm nổi quầng thâm; thêm vòng cổ bạc hoặc khăn sáng màu')} else {s+=10;pos.push('Màu đen ở thân dưới làm đùi gọn hơn')} }
@@ -384,6 +405,7 @@ const SIL = {
   outer:'M16 6l-9 4-3 32h8l2-20v22h20V22l2 20h8l-3-32-9-4-8 12-8-12Z',
   shoes:'M6 34c0-6 2-14 4-16h6c2 6 8 8 14 9l9 2c3 1 4 3 4 5v4H6v-4Z',
   bag:'M10 18h28l-2 24H12l-2-24Zm7 0c0-6 3-9 7-9s7 3 7 9',
+  acc:'M24 10a14 14 0 1 0 .01 0Zm0 6a8 8 0 1 1-.01 0Z',
 };
 function ink(hex){ if(!hex||hex[0]!=='#')return '#24304D'; const n=parseInt(hex.slice(1),16),r=n>>16,g=n>>8&255,b=n&255; return (r*299+g*587+b*114)/1000>150?'rgba(36,48,77,.55)':'rgba(255,255,255,.75)'}
 function thumbHTML(it,cls='thumb'){
@@ -467,11 +489,14 @@ const SAMPLES=[
   {name:'Blazer dài xám than',cat:'outer',shape:'dai',color:'xam-than',occ:['lam','tiec'],season:'lanh'},
   {name:'Giày mũi nhọn be hồng',cat:'shoes',shape:'muinhon',color:'be-hong',occ:['lam','hen','tiec'],season:'ca-nam'},
   {name:'Sneaker trắng',cat:'shoes',shape:'sneaker',color:'trang',occ:['choi','nha'],season:'ca-nam'},
+  {name:'Thắt lưng bản nhỏ navy',cat:'acc',shape:'thatlung',color:'navy',occ:[],season:'ca-nam'},
+  {name:'Dây chuyền bạc mảnh',cat:'acc',shape:'daychuyen',color:'bac',occ:[],season:'ca-nam'},
+  {name:'Khăn len hồng phấn',cat:'acc',shape:'khan',color:'hong-phan',occ:[],season:'lanh'},
   {name:'Túi đeo chéo bạc xám',cat:'bag',shape:'nho',color:'xam-nhat',occ:['choi','hen','tiec','lam'],season:'ca-nam'},
 ];
 async function addSamples(){
   for(const s of SAMPLES){ await putItem({id:uid(),...s,sample:true,created:Date.now()}).catch(()=>{}) }
-  toast('Đã thêm 13 món mẫu. Xóa chúng khi tủ đồ thật đã đủ.');
+  toast('Đã thêm 16 món mẫu. Xóa chúng khi tủ đồ thật đã đủ.');
 }
 async function removeSamples(){ for(const it of S.items.filter(x=>x.sample)) await delItem(it.id); toast('Đã xóa các món mẫu.') }
 
@@ -538,7 +563,17 @@ function buildOutfits(){
       else if(sc&&(sc.id==='be-hong'||sc.id==='kem'))c.pos.push('Giày màu nude kéo dài chân');
     }
     if(bags.length) c.extra.push(bags[idx%bags.length]);
-    c.pos=[...new Set(c.pos)].slice(0,4); c.neg=[...new Set(c.neg)].slice(0,2);
+    // phụ kiện: thắt lưng nhấn eo, khăn khi trời mát/lạnh, 1 món trang sức (ưu tiên bạc)
+    const accs=by('acc').filter(occOK).sort((a,b)=>rated.get(b.id).s-rated.get(a.id).s);
+    const accWhy=[]; const pickAcc=(types,why)=>{const a=accs.find(x=>types.includes(x.shape)&&!c.extra.includes(x)); if(a){c.extra.push(a); if(why)accWhy.push(why(a))} return a};
+    const top=c.main[0], low=c.main[c.main.length-1];
+    if(c.main.length===1||low.rise==='cao') pickAcc(['thatlung'],a=>c.main.length===1?`Thêm ${a.name.toLowerCase()} thắt ngang eo váy để khoe eo, giấu hông`:`Sơ vin và thêm ${a.name.toLowerCase()} để nhấn eo, chân trông dài hơn`);
+    if(w!=='nong') pickAcc(['khan'],a=>`${a.name} màu ${C[a.color]?.name.toLowerCase()||''} gần mặt giúp da sáng, đỡ lạnh`);
+    const tc=C[top.color]; const jewel=pickAcc(['daychuyen','khuyentai','vongtay','nhan'],a=>C[a.color]?.metal==='hop'?`${a.name} ${C[a.color].name.toLowerCase()} hợp da True Summer`:null);
+    if(!jewel&&tc&&(tc.g==='den'||(top.shape==='v'||top.shape==='vuong'))&&!accs.length) accWhy.push('Đeo thêm dây chuyền bạc mảnh để làm sáng cổ áo');
+    if(S.occ==='lam') pickAcc(['dongho'],null);
+    if(w==='nong') pickAcc(['mu','kinh'],null);
+    const aw=accWhy.filter(Boolean).slice(0,2); c.pos=[...[...new Set(c.pos.filter(Boolean))].slice(0,5-aw.length),...aw]; c.neg=[...new Set(c.neg)].slice(0,2);
     c.s=Math.max(5,Math.min(100,Math.round(c.s))); c.styleTag=S.style!=='all'?S.style:bestStyle(c.main)?.id;
   });
   return {out,counts:{tops:tops.length,lows:lows.length,dresses:dresses.length}};
@@ -558,7 +593,7 @@ function viewWardrobe(){
   if(!S.items.length) return `<section><div class="empty">
     <h2>Tủ đồ đang trống</h2>
     <p>Chụp từng món bằng nút <b>+</b> bên dưới. App sẽ đoán màu từ ảnh, chấm độ hợp với dáng quả lê và da True Summer của bạn, rồi gợi ý cách phối theo dịp.</p>
-    <div class="row"><button class="btn" data-act="add">Thêm món đầu tiên</button><button class="btn ghost" data-act="samples">Thử với 13 món mẫu</button></div>
+    <div class="row"><button class="btn" data-act="add">Thêm món đầu tiên</button><button class="btn ghost" data-act="samples">Thử với 16 món mẫu</button></div>
     <div class="row"><label class="btn ghost small" for="f-restore">Khôi phục từ file sao lưu</label></div>
   </div>${installHTML()}${tipsHTML()}</section>`;
   const counts=Object.fromEntries(CATS.map(c=>[c.id,S.items.filter(i=>i.cat===c.id).length]));
@@ -722,7 +757,7 @@ function viewOutfits(){
   const mains=S.items.filter(i=>['top','bottom','skirt','dress'].includes(i.cat));
   const strip=mains.length?`<div class="label">Hôm nay muốn mặc món nào? <span style="text-transform:none;letter-spacing:0;font-weight:400">Chạm để xem cách phối đẹp nhất</span></div><div class="strip">${mains.map(i=>`<button class="strip-item" data-pin="${i.id}" aria-pressed="${S.pin===i.id}" aria-label="Phối với ${esc(i.name)}">${thumbHTML(i)}</button>`).join('')}</div>`:'';
   const pin=pinIt?`<div class="pinned">${thumbHTML(pinIt)}<div style="flex:1;min-width:0">Đang phối quanh <b>${esc(pinIt.name)}</b></div><button class="btn ghost small" data-act="unpin">Bỏ chọn</button></div>`:'';
-  if(!S.items.length) return `<section>${ctl}<div class="empty"><h2>Chưa có đồ để phối</h2><p>Thêm vài cái áo và quần hoặc váy, hoặc thử với bộ mẫu.</p><div class="row"><button class="btn" data-act="add">Thêm món đồ</button><button class="btn ghost" data-act="samples">Thử với 13 món mẫu</button></div></div></section>`;
+  if(!S.items.length) return `<section>${ctl}<div class="empty"><h2>Chưa có đồ để phối</h2><p>Thêm vài cái áo và quần hoặc váy, hoặc thử với bộ mẫu.</p><div class="row"><button class="btn" data-act="add">Thêm món đồ</button><button class="btn ghost" data-act="samples">Thử với 16 món mẫu</button></div></div></section>`;
   const {out,counts}=buildOutfits();
   if(!out.length){
     return `<section>${ctl}${strip}${pin}<div class="empty"><h2>Chưa ghép được bộ nào</h2><p>${missingText(counts)}</p><div class="row"><button class="btn" data-act="add">Thêm món đồ</button></div></div></section>`;
@@ -773,7 +808,7 @@ function drawSheet(){
     ${sh?`<div class="field"><span class="label">${sh.label}</span><div class="opts">${sh.opts.map(o=>`<button type="button" class="chip" data-shape="${o[0]}" aria-pressed="${e.shape===o[0]}">${o[1]}</button>`).join('')}</div></div>`:''}
     ${(e.cat==='bottom'||e.cat==='skirt')?`<div class="field"><span class="label">Cạp</span><div class="opts">${RISES.map(o=>`<button type="button" class="chip" data-rise="${o[0]}" aria-pressed="${e.rise===o[0]}">${o[1]}</button>`).join('')}</div></div>`:''}
     ${(e.cat==='skirt'||e.cat==='dress')?`<div class="field"><span class="label">Độ dài</span><div class="opts">${LENGTHS.map(o=>`<button type="button" class="chip" data-len="${o[0]}" aria-pressed="${e.length===o[0]}">${o[1]}</button>`).join('')}</div></div>`:''}
-    <div class="field"><span class="label">Màu chính</span>${grp('hop','Hợp với bạn')}${grp('tt','Trung tính')}${grp('tranh','Nên tránh gần mặt')}</div>
+    <div class="field"><span class="label">Màu chính</span>${grp('hop','Hợp với bạn')}${grp('tt','Trung tính')}${grp('tranh','Nên tránh gần mặt')}${e.cat==='acc'||e.cat==='bag'||e.cat==='shoes'?grp('kl','Kim loại, trang sức'):''}</div>
     ${r?`<div class="verdict"><span class="pill v${r.v.k}">${r.v.t} · ${r.s}/100</span><ul class="reasons">${r.pos.map(p=>`<li>${esc(p)}</li>`).join('')}${r.neg.map(p=>`<li class="neg">${esc(p)}</li>`).join('')}</ul></div>`:''}
     <div class="field"><span class="label">Mặc vào dịp nào</span><div class="opts">${OCC.map(([k,n])=>`<button type="button" class="chip" data-eocc="${k}" aria-pressed="${e.occ.includes(k)}">${n}</button>`).join('')}</div></div>
     <div class="field"><span class="label">Chất liệu</span><div class="opts">${FABRICS.map(([k,n])=>`<button type="button" class="chip" data-fabric="${k}" aria-pressed="${e.fabric===k}">${n}</button>`).join('')}</div></div>
@@ -871,6 +906,7 @@ const CAT_WORDS={
   dress:['gown','abaya','kimono','vestment'],
   shoes:['sandal','running shoe','loafer','cowboy boot','clog','Loafer','shoe shop'],
   bag:['purse','backpack','mailbag','wallet','plastic bag'],
+  acc:['necklace','buckle','sunglasses','sunglass','stole','cowboy hat','sombrero','bonnet','digital watch','analog clock','wall clock','chain','bolo tie'],
 };
 let mlModel=null, mlLoading=null;
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
@@ -895,8 +931,8 @@ async function guessCategory(canvas,e){
   else e.catGuess=false;
   drawSheet();
 }
-function autoName(it){return `${CAT[it.cat].name} ${C[it.color]?C[it.color].name.toLowerCase():''}`.trim()}
-function isAutoName(n){n=(n||'').trim().toLowerCase(); return CATS.some(c=>COLORS.some(col=>n===`${c.name} ${col.name}`.toLowerCase()))||CATS.some(c=>n===c.name.toLowerCase())}
+function autoName(it){const base=it.cat==='acc'&&shapeOf(it)?shapeOf(it)[1]:CAT[it.cat].name; return `${base} ${C[it.color]?C[it.color].name.toLowerCase():''}`.trim()}
+function isAutoName(n){n=(n||'').trim().toLowerCase(); const bases=[...CATS.map(c=>c.name),...SHAPES.acc.opts.map(o=>o[1])]; return bases.some(c=>COLORS.some(col=>n===`${c} ${col.name}`.toLowerCase()))||bases.some(c=>n===c.toLowerCase())}
 async function fixAutoNames(){ // sửa tên tự đặt bị lệch loại (vd. quần mà tên "Áo đen")
   for(const it of S.items){ if(isAutoName(it.name)&&it.name!==autoName(it)) await putItem({...it,name:autoName(it)}).catch(()=>{}) }
 }
