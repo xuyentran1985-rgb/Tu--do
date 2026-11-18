@@ -106,6 +106,23 @@ section{display:flex;flex-direction:column;gap:12px;margin-top:8px}
 .strip-item .thumb{aspect-ratio:1;border-radius:10px;overflow:hidden}
 .strip-item .tag-sample{display:none}
 .strip-item[aria-pressed="true"]{border-color:var(--accent)}
+.seg{display:flex;background:var(--surface);border-radius:12px;padding:4px;box-shadow:var(--shadow);margin-bottom:12px}
+.seg button{flex:1;border:0;background:transparent;color:var(--ink);padding:9px;border-radius:9px;font-weight:600;font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.chk-photo{position:relative;border-radius:14px;overflow:hidden;background:var(--line)}
+.chk-photo img{display:block;width:100%;max-height:70vh;object-fit:contain;cursor:crosshair}
+.dot{position:absolute;transform:translate(-50%,-50%);pointer-events:none;background:var(--ink);color:var(--bg);font-size:11px;font-weight:700;border-radius:999px;padding:2px 7px;border:2px solid var(--bg);white-space:nowrap}
+.pick-now{background:var(--accent);color:var(--accent-ink);border-radius:10px;padding:8px 10px;font-size:13.5px;font-weight:600;text-align:center}
+.swrow{display:flex;gap:8px;flex-wrap:wrap}
+.swbtn{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:6px 10px;font-size:13px;color:var(--ink)}
+.swbtn[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.swbtn i{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);flex:none}
+.fixes{background:var(--accent-soft);border-radius:12px;padding:10px 12px;font-size:13.5px}
+.fixes ol{margin:4px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:3px}
+.hist{display:flex;flex-direction:column;gap:10px}
+.hist-item{display:flex;gap:10px;background:var(--surface);border-radius:14px;padding:8px;box-shadow:var(--shadow);align-items:flex-start}
+.hist-item img{width:64px;height:84px;object-fit:cover;border-radius:10px;flex:none;background:var(--line)}
+.hist-item .meta{flex:1;min-width:0;font-size:13px;display:flex;flex-direction:column;gap:4px}
 .acc-tip ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:2px}
 .acc-tip{display:flex;flex-direction:column;gap:3px;background:var(--bg);border-radius:12px;padding:9px 11px;font-size:13.5px}
 .update-bar{position:fixed;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top,0px));z-index:50;border:0;border-radius:12px;background:var(--accent);color:var(--accent-ink);font-weight:600;padding:11px 16px;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
@@ -430,14 +447,15 @@ function mix(hex){ // nền nhạt cùng tông màu món đồ
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 /* ---------- Lưu trữ: ngay trên điện thoại (IndexedDB), có sao lưu ra file ---------- */
-const S = {items:[], mode:'loading', style:(()=>{try{return localStorage.getItem('style')||'all'}catch{return 'all'}})(), tab:'tu', cat:'all', occ:'lam', weather:'nong', pin:null, more:false, editing:null, confirmDel:false, err:''};
+const S = {items:[], checks:[], phoi:'goi', mode:'loading', style:(()=>{try{return localStorage.getItem('style')||'all'}catch{return 'all'}})(), tab:'tu', cat:'all', occ:'lam', weather:'nong', pin:null, more:false, editing:null, confirmDel:false, err:''};
 let idb=null;
-function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('tu-do',1);r.onupgradeneeded=()=>r.result.createObjectStore('items',{keyPath:'id'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
-function tx(mode,fn){return new Promise((res,rej)=>{const t=idb.transaction('items',mode);const st=t.objectStore('items');const out=fn(st);t.oncomplete=()=>res(out&&out.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)})}
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('tu-do',2);r.onupgradeneeded=()=>{const db=r.result; if(!db.objectStoreNames.contains('items'))db.createObjectStore('items',{keyPath:'id'}); if(!db.objectStoreNames.contains('checks'))db.createObjectStore('checks',{keyPath:'id'})};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+function tx(mode,fn,store='items'){return new Promise((res,rej)=>{const t=idb.transaction(store,mode);const st=t.objectStore(store);const out=fn(st);t.oncomplete=()=>res(out&&out.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)})}
 async function initStore(){
   try{
     idb=await openDB();
     S.items=await tx('readonly',st=>st.getAll())||[];
+    try{S.checks=(await tx('readonly',st=>st.getAll(),'checks')||[]).sort((a,b)=>b.at-a.at)}catch{}
     S.mode='db';
     await fixAutoNames();
     try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch{}
@@ -462,7 +480,7 @@ async function delItem(id){
 }
 /* Sao lưu / khôi phục */
 function exportBackup(){
-  const blob=new Blob([JSON.stringify({app:'tu-do',version:1,saved:new Date().toISOString(),items:S.items})],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({app:'tu-do',version:2,saved:new Date().toISOString(),items:S.items,checks:S.checks})],{type:'application/json'});
   const name='tu-do-sao-luu-'+new Date().toISOString().slice(0,10)+'.json';
   const file=new File([blob],name,{type:'application/json'});
   if(navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:'Sao lưu tủ đồ'}).catch(()=>{});return}
@@ -474,6 +492,7 @@ async function importBackup(file){
     const data=JSON.parse(await file.text()); const items=Array.isArray(data)?data:data.items;
     if(!Array.isArray(items))throw 0;
     let n=0; for(const it of items){ if(it&&it.id&&it.cat){ await putItem(it); n++ } }
+    if(Array.isArray(data.checks)) for(const c of data.checks){ if(c&&c.id&&c.at&&!S.checks.some(x=>x.id===c.id)) await saveCheck(c,true) }
     toast(`Đã khôi phục ${n} món.`);
   }catch{toast('File này không phải bản sao lưu tủ đồ.')}
 }
@@ -771,7 +790,153 @@ function viewTravel(){
   return html+'</section>';
 }
 
+/* ---------- Trả bài: chụp ảnh gương, app chấm bộ đang mặc ---------- */
+let CHK; function resetCheck(){CHK={photo:null,thumb:null,top:null,low:null,dots:{},picking:null,fit:{},acc:[],result:null}} resetCheck();
+const Q_FIT=[
+  ['type','Bạn đang mặc',[['quan','Áo + quần'],['vay','Áo + chân váy'],['lien','Váy liền']]],
+  ['top','Áo (hoặc váy liền) thế nào?',[['om','Ôm sát'],['vua','Vừa người'],['rong','Rộng, thụng']]],
+  ['tuck','Có sơ vin (nhét áo vào) không?',[['co','Có'],['vat','Nhét vạt trước'],['khong','Không']]],
+  ['low','Quần hoặc váy thế nào?',[['om','Ôm sát'],['suong','Suông, đứng'],['rong','Ống rộng, xòe']]],
+  ['len','Dài tới đâu?',[['dat','Chạm đất'],['mu','Mu bàn chân'],['ca','Mắt cá'],['bap','Bắp chân'],['goi','Ngang gối'],['ngan','Trên gối']]],
+  ['shoe','Đi giày gì?',[['got','Cao gót, đế xuồng'],['bet','Giày bệt, sandal'],['sneaker','Sneaker'],['tran','Chưa đi giày']]],
+];
+const Q_ACC=[['belt','Thắt lưng'],['jewel','Dây chuyền, khuyên tai'],['bag','Túi'],['watch','Đồng hồ'],['khan','Khăn']];
+function chkPhoto(file){
+  const go=(img,w,h)=>{const k=Math.min(1,900/Math.max(w,h)); const cv=document.createElement('canvas'); cv.width=Math.round(w*k); cv.height=Math.round(h*k); cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height); chkSet(cv)};
+  if(window.createImageBitmap){createImageBitmap(file,{imageOrientation:'from-image'}).then(b=>go(b,b.width,b.height)).catch(()=>toast('Không đọc được ảnh này, thử ảnh khác nhé.'));return}
+  const fr=new FileReader(); fr.onload=()=>{const im=new Image(); im.onload=()=>go(im,im.naturalWidth,im.naturalHeight); im.src=fr.result}; fr.readAsDataURL(file);
+}
+function chkSet(cv){
+  CHK.photo=cv.toDataURL('image/jpeg',.82);
+  const k=Math.min(1,240/Math.max(cv.width,cv.height)), t=document.createElement('canvas'); t.width=Math.round(cv.width*k); t.height=Math.round(cv.height*k); t.getContext('2d').drawImage(cv,0,0,t.width,t.height);
+  CHK.thumb=t.toDataURL('image/jpeg',.7); CHK.top=CHK.low=null; CHK.dots={}; CHK.picking='top'; CHK.result=null; render();
+  setTimeout(()=>document.getElementById('chk-img')?.scrollIntoView({block:'center',behavior:'smooth'}),60);
+}
+function chkRotate(){ if(!CHK.photo)return; const im=new Image(); im.onload=()=>{const cv=document.createElement('canvas'); cv.width=im.height; cv.height=im.width; const x=cv.getContext('2d'); x.translate(cv.width,0); x.rotate(Math.PI/2); x.drawImage(im,0,0); chkSet(cv)}; im.src=CHK.photo }
+function chkPick(ev){
+  const w=CHK.picking; if(!w){toast('Bấm vào ô "Màu áo" hoặc "Màu quần, váy" trước rồi chạm vào ảnh.');return}
+  const img=ev.target, rect=img.getBoundingClientRect(), cv=document.createElement('canvas'); cv.width=img.naturalWidth; cv.height=img.naturalHeight;
+  const ctx=cv.getContext('2d'); ctx.drawImage(img,0,0);
+  // ảnh hiển thị kiểu contain: tính vùng ảnh thật trong khung
+  const sc=Math.min(rect.width/cv.width,rect.height/cv.height), ow=cv.width*sc, oh=cv.height*sc, ox=(rect.width-ow)/2, oy=(rect.height-oh)/2;
+  const px=(ev.clientX-rect.left-ox)/ow, py=(ev.clientY-rect.top-oy)/oh; if(px<0||px>1||py<0||py>1)return;
+  const x=Math.round(px*cv.width), y=Math.round(py*cv.height), R=6;
+  const d=ctx.getImageData(Math.max(0,x-R),Math.max(0,y-R),R*2+1,R*2+1).data; let r=0,g=0,b=0,n=0; for(let i=0;i<d.length;i+=4){r+=d[i];g+=d[i+1];b+=d[i+2];n++}
+  const c=nearestColors(r/n,g/n,b/n,12).find(x=>C[x.id].g!=='kl').id;
+  CHK[w]=c; CHK.dots[w]={x:(ox+px*ow)/rect.width*100,y:(oy+py*oh)/rect.height*100}; CHK.result=null;
+  toast((w==='top'?'Áo: ':'Quần, váy: ')+C[c].name);
+  CHK.picking=w==='top'&&!CHK.low&&CHK.fit.type!=='lien'?'low':null; render();
+}
+function gradeCheck(){
+  const f=CHK.fit, lien=f.type==='lien', top=C[CHK.top], low=lien?null:C[CHK.low], acc=CHK.acc;
+  let s=70; const pos=[],neg=[],fix=[];
+  // màu
+  if(top){
+    if(top.g==='hop'){s+=8;pos.push(`${top.name} gần mặt là màu tông lạnh dịu, hợp da bạn`)}
+    else if(top.g==='tranh'){s-=12;neg.push(`${top.name} là tông ấm, sát mặt dễ làm da xỉn`);fix.push('Quàng khăn hoặc đeo dây chuyền màu lạnh (xanh baby, hồng phấn, bạc) gần cổ để át màu ấm')}
+    else if(top.g==='den'){s-=4;neg.push('Áo đen sát mặt dễ làm mặt mệt');if(!acc.includes('jewel'))fix.push('Đeo dây chuyền bạc hoặc ngọc trai để sáng mặt')}
+    else if(top.g==='tt'){s+=4;pos.push(`${top.name} là màu trung tính dễ mặc`)}
+  }
+  if(low){
+    if(low.d===3){s+=6;pos.push('Quần, váy tối màu làm hông và đùi gọn hơn')}
+    else if(low.d===1){s-=5;neg.push('Thân dưới sáng màu làm đùi trông to hơn')}
+    if(low.g==='tranh'){s-=3;neg.push(`${low.name} hơi ấm so với tông da bạn`)}
+    if(top){
+      if(top.id===low.id||(top.g===low.g&&top.d===low.d&&top.g!=='tranh')){s+=4;pos.push('Cùng tông từ trên xuống kéo dài dáng, trông cao hơn')}
+      else if(top.d<low.d){s+=6;pos.push('Áo sáng, quần tối: ánh nhìn dồn lên mặt và vai, đúng kiểu hợp dáng quả lê')}
+      else if(top.d>low.d){s-=6;neg.push('Áo tối hơn quần làm ánh nhìn dồn xuống đùi');fix.push('Đổi sang quần hoặc váy tối màu hơn áo')}
+      if(top.d===2&&low.d===2&&top.id!==low.id){s-=2;neg.push('Hai màu cùng độ đậm vừa, hơi nhạt nhòa');fix.push('Cho một món sáng hẳn hoặc tối hẳn để bộ đồ có điểm nhấn')}
+      if(top.accent&&low.accent){s-=6;neg.push('Hai màu nổi cùng lúc, hơi rối mắt')}
+    }
+  }
+  if(TR&&top){const t=TR.colors.find(c=>c.id===top.id||(low&&c.id===low.id)); if(t){s+=3;pos.push('Có màu đang là xu hướng mùa này: '+C[t.id].name)}}
+  // dáng
+  const rongT=f.top==='rong', rongL=f.low==='rong', tuck=f.tuck==='co'||f.tuck==='vat', belt=acc.includes('belt');
+  if(lien){
+    if(rongT&&!belt){s-=10;neg.push('Váy rộng không chiết eo trông như mặc bao, mất dáng');fix.push('Thắt một chiếc thắt lưng mảnh ngay eo (chỗ nhỏ nhất)')}
+    else if(rongT&&belt){s+=6;pos.push('Thắt lưng tạo eo cho váy rộng, rất đúng')}
+  } else if(f.top&&f.low){
+    if(rongT&&rongL&&!tuck&&!belt){s-=18;neg.push('Áo rộng thả ngoài cùng quần, váy rộng: cả người thành một khối, đây là lý do trông luộm thuộm');fix.push('Sơ vin vạt trước áo vào cạp, để vạt sau thả tự nhiên');fix.push('Hoặc thắt lưng mảnh ở eo để lộ chỗ nhỏ nhất của người')}
+    else if(rongT&&rongL&&(tuck||belt)){s+=4;pos.push('Có sơ vin hoặc thắt lưng nên áo rộng vẫn gọn eo')}
+    if(f.top==='om'&&f.low==='om'){s-=8;neg.push('Ôm cả trên lẫn dưới làm lộ phần đùi to nhất');fix.push('Đổi sang quần suông hoặc ống rộng, giữ áo ôm')}
+    else if(f.top!=='rong'&&f.low!=='om'){s+=10;pos.push('Áo gọn, quần váy suông rộng: cân đối dáng quả lê')}
+    if(f.low==='om'&&f.top!=='rong'){s-=6;neg.push('Quần váy ôm sát làm đùi trông to hơn');if(low&&low.d<3)fix.push('Nếu mặc đồ ôm thân dưới, chọn màu thật tối và áo dài phủ hông')}
+    if(f.low==='om'&&rongT&&!tuck){s+=3;pos.push('Áo rộng che hông, cân với thân dưới ôm')}
+  }
+  if(!lien&&tuck&&f.tuck==='co'){s+=4;pos.push('Sơ vin lộ eo, chân trông dài hơn')}
+  if(!lien&&f.tuck==='vat'){s+=5;pos.push('Nhét vạt trước vừa gọn eo vừa che bụng, rất hợp')}
+  // độ dài và giày
+  const flat=f.shoe==='bet'||f.shoe==='sneaker'||f.shoe==='tran';
+  if(f.len==='dat'){
+    if(flat){s-=10;neg.push('Ống quần váy chạm đất mà đi giày bệt: người thấp đi, gấu dễ bẩn và trông lôi thôi');fix.push('Đi cao gót hoặc đế xuồng 5 đến 7 cm để gấu chỉ chạm gót giày');fix.push('Hoặc lên gấu cho vừa chạm mu bàn chân')}
+    else if(f.shoe==='got'){s+=6;pos.push('Quần dài chạm đất với giày cao: chân dài miên man')}
+  }
+  if(f.len==='mu'&&f.shoe==='got'){s+=6;pos.push('Độ dài vừa chạm mu giày với gót cao, kéo chân dài')}
+  if(f.len==='bap'){ if(flat){s-=8;neg.push('Dài đến bắp chân và đi giày bệt cắt ngang chỗ to của chân, trông thấp hơn');fix.push('Đổi sang giày mũi nhọn có gót hoặc giày khoét sâu mu bàn chân')} else {s+=2} }
+  if(f.len==='ngan'){s-=5;neg.push('Trên gối làm lộ phần đùi');fix.push('Chọn độ dài ngang gối hoặc dưới gối')}
+  if(f.len==='goi'&&f.type==='vay'){s+=4;pos.push('Váy ngang gối che đùi, lộ phần chân thon')}
+  if(rongL&&flat&&f.len!=='ca'&&f.len!=='bap'){s-=4;neg.push('Ống rộng với giày bệt hơi làm người thấp, nhất là với chiều cao 1m58')}
+  if(f.shoe==='tran'){fix.push('Khi ra ngoài: '+(f.len==='dat'||rongL?'sandal cao gót quai mảnh hoặc giày mũi nhọn có gót, màu nude, bạc hoặc đen':'giày bệt mũi nhọn hoặc sandal quai mảnh màu nude, bạc'))}
+  // phụ kiện
+  if(!acc.length){s-=4;neg.push('Chưa có phụ kiện nên bộ đồ hơi trống');fix.push('Thêm dây chuyền mảnh bạc hoặc khuyên tai ngọc trai để đưa ánh nhìn lên mặt')}
+  else{ if(acc.includes('jewel')){s+=3;pos.push('Trang sức gần mặt giúp ánh nhìn dồn lên trên')} if(acc.length>=2){s+=2} }
+  if(!lien&&rongT&&!tuck&&!belt&&f.low&&f.low!=='rong'&&!acc.length){fix.push('Thử xắn tay áo lên khuỷu cho gọn')}
+  if(top&&top.d===1&&low&&low.d===3&&!acc.includes('bag')){fix.push('Túi nhỏ màu nối giữa hai màu (ví dụ xám xanh, be hồng) sẽ làm bộ đồ liền mạch')}
+  const missing=[!CHK.top&&'màu áo',!lien&&!CHK.low&&'màu quần, váy',!f.top&&'áo rộng hay ôm',!lien&&!f.low&&'quần váy rộng hay ôm',!f.len&&'độ dài',!f.shoe&&'giày'].filter(Boolean);
+  s=Math.max(5,Math.min(100,Math.round(s)));
+  return {s,pos:[...new Set(pos)].slice(0,5),neg:[...new Set(neg)].slice(0,4),fix:[...new Set(fix)].slice(0,5),missing};
+}
+function chkResultHTML(r,save=true){
+  const v=verdict(r.s);
+  return `<div class="outfit" id="chk-result">
+    <div class="row" style="gap:8px;align-items:center"><span class="pill v${v.k}" style="font-size:14px">${v.t} · ${r.s}/100</span></div>
+    ${r.missing&&r.missing.length?`<div class="hint">Trả lời thêm (${r.missing.join(', ')}) để chấm chuẩn hơn.</div>`:''}
+    ${r.fix.length?`<div class="fixes"><b>Sửa thế này là đẹp hơn</b><ol>${r.fix.map(x=>`<li>${esc(x)}</li>`).join('')}</ol></div>`:''}
+    <ul class="reasons">${r.pos.map(p=>`<li>${esc(p)}</li>`).join('')}${r.neg.map(p=>`<li class="neg">${esc(p)}</li>`).join('')}</ul>
+    ${save?`<div class="row"><button class="btn" data-act="chk-save">Lưu vào lịch sử</button><button class="btn ghost" data-act="chk-ask">Hỏi Claude chi tiết</button></div>`:''}
+  </div>`;
+}
+function viewCheck(){
+  const f=CHK.fit, lien=f.type==='lien';
+  const sw=(w,lab)=>{const c=C[CHK[w]]; return `<button class="swbtn" data-act="chk-which" data-w2="${w}" aria-pressed="${CHK.picking===w}"><i style="background:${c?c.hex:'transparent'}"></i>${lab}: <b>${c?esc(c.name):'chạm để chọn'}</b></button>`};
+  const top=`<div class="empty" style="gap:10px"><h2 style="margin:0">Trả bài hôm nay</h2><p>Chụp ảnh gương cả người, chạm vào áo và quần để app lấy màu, trả lời vài câu, app sẽ chấm và chỉ chỗ cần sửa.</p>
+    <label class="btn" for="f-check" style="text-align:center">${CHK.photo?'Chụp lại ảnh khác':'Chụp hoặc chọn ảnh gương'}</label><input id="f-check" type="file" accept="image/*" hidden></div>`;
+  let body='';
+  if(CHK.photo){
+    const dots=Object.entries(CHK.dots).filter(([w])=>!(lien&&w==='low')).map(([w,p])=>`<span class="dot" style="left:${p.x}%;top:${p.y}%">${w==='top'?'Áo':'Quần'}</span>`).join('');
+    body+=`${CHK.picking?`<div class="pick-now">Chạm vào ${CHK.picking==='top'?(lien?'váy':'áo'):'quần hoặc váy'} trong ảnh</div>`:''}
+    <div class="chk-photo"><img id="chk-img" src="${CHK.photo}" alt="Ảnh bộ đồ đang mặc">${dots}</div>
+    <div class="row"><button class="btn ghost small" data-act="chk-rot">↻ Xoay ảnh</button></div>
+    <div class="swrow">${sw('top',lien?'Màu váy':'Màu áo')}${lien?'':sw('low','Màu quần, váy')}</div>`;
+  }
+  const qs=Q_FIT.filter(([k])=>!(lien&&(k==='tuck'||k==='low'))).map(([k,lab,opts])=>`<div class="label">${lab}</div><div class="chips">${opts.map(([v,n])=>`<button class="chip" data-q="${k}:${v}" aria-pressed="${f[k]===v}">${n}</button>`).join('')}</div>`).join('');
+  const accq=`<div class="label">Đang đeo, mang gì?</div><div class="chips">${Q_ACC.map(([v,n])=>`<button class="chip" data-q="acc:${v}" aria-pressed="${CHK.acc.includes(v)}">${n}</button>`).join('')}</div>`;
+  if(CHK.photo) body+=`<div class="controls">${qs}${accq}</div><button class="btn" data-act="chk-go">Chấm điểm</button>${CHK.result?chkResultHTML(CHK.result):''}`;
+  const hist=S.checks.length?`<div class="label" id="hist" style="margin-top:8px">Lịch sử trả bài (${S.checks.length})</div><div class="hist">${S.checks.map(h=>{const v=verdict(h.s);return `<div class="hist-item">${h.thumb?`<img src="${h.thumb}" alt="">`:''}<div class="meta"><div class="row" style="gap:6px;justify-content:space-between"><span>${new Date(h.at).toLocaleDateString('vi-VN',{weekday:'short',day:'numeric',month:'numeric'})}</span><span class="pill v${v.k}">${h.s}/100</span></div>${(h.fix||[]).slice(0,2).map(x=>`<div>• ${esc(x)}</div>`).join('')||(h.pos||[]).slice(0,1).map(x=>`<div>• ${esc(x)}</div>`).join('')}<div><button class="btn ghost small" data-act="chk-del" data-id="${h.id}">Xóa</button></div></div></div>`}).join('')}</div>`
+    +(S.checks.length>=3?`<div class="hint">Điểm trung bình ${Math.round(S.checks.reduce((a,h)=>a+h.s,0)/S.checks.length)}/100. Bộ cao nhất: ${Math.max(...S.checks.map(h=>h.s))}/100.</div>`:''):'';
+  return `<div style="display:flex;flex-direction:column;gap:12px">${top}${body}${hist}</div>`;
+}
+async function saveCheck(c,quiet){
+  if(idb){try{await tx('readwrite',st=>st.put(c),'checks')}catch{toast('Chưa lưu được, thử lại nhé.');return}}
+  S.checks=[c,...S.checks.filter(x=>x.id!==c.id)].sort((a,b)=>b.at-a.at); if(!quiet)render();
+}
+async function delCheck(id){
+  if(idb){try{await tx('readwrite',st=>st.delete(id),'checks')}catch{}}
+  S.checks=S.checks.filter(x=>x.id!==id); render();
+}
+function askClaude(){
+  const f=CHK.fit, r=CHK.result, name=(Q,k)=>{const q=Q_FIT.find(x=>x[0]===k); return q&&f[k]?q[2].find(o=>o[0]===f[k])[1]:'chưa rõ'};
+  const txt=`Mình cao 1m58, nặng 56kg, dáng quả lê (đùi to), vai ngang, da True Summer. Hôm nay mình mặc: ${name(Q_FIT,'type')}; màu áo ${C[CHK.top]?.name||'chưa rõ'}${f.type==='lien'?'':`, màu quần/váy ${C[CHK.low]?.name||'chưa rõ'}`}; áo ${name(Q_FIT,'top')}; sơ vin: ${name(Q_FIT,'tuck')}; quần/váy ${name(Q_FIT,'low')}; dài ${name(Q_FIT,'len')}; giày: ${name(Q_FIT,'shoe')}; phụ kiện: ${CHK.acc.map(a=>Q_ACC.find(x=>x[0]===a)[1]).join(', ')||'không'}. App chấm ${r?r.s:'?'}/100. Mình gửi kèm ảnh, bạn nhận xét chi tiết và chỉ cách sửa cho đẹp hơn bằng đồ mình có nhé.`;
+  try{navigator.clipboard&&navigator.clipboard.writeText(txt)}catch{}
+  toast('Đã chép lời nhắn. Ở Claude, bấm dấu + để gửi kèm ảnh nhé.');
+  window.open('https://claude.ai/new?q='+encodeURIComponent(txt),'_blank');
+}
 function viewOutfits(){
+  const seg=`<div class="seg" role="group" aria-label="Chế độ"><button data-phoi="goi" aria-pressed="${S.phoi!=='tra'}">Gợi ý bộ</button><button data-phoi="tra" aria-pressed="${S.phoi==='tra'}">Trả bài</button></div>`;
+  if(S.phoi==='tra') return `<section>${seg}${viewCheck()}</section>`;
+  return seg+viewSuggest();
+}
+function viewSuggest(){
   const ctl=`<div class="controls">
     ${wxHTML()}
     ${TR?`<div class="label">Phong cách</div><div class="chips">${[['all','Tất cả'],...Object.entries(TR.styles).map(([k,v])=>[k,v.name])].map(([k,n])=>`<button class="chip" data-style="${k}" aria-pressed="${S.style===k}">${n}</button>`).join('')}</div>`:''}
@@ -976,7 +1141,8 @@ async function saveSheet(){
 /* ---------- Sự kiện ---------- */
 document.addEventListener('click',async ev=>{
   if(ev.target.id==='pick-img'){pickColorAt(ev);return}
-  const t=ev.target.closest('[data-tab],[data-act],[data-cat],[data-open],[data-occ],[data-w],[data-wear],[data-ecat],[data-shape],[data-rise],[data-len],[data-color],[data-eocc],[data-season],[data-fabric],[data-style],[data-days],[data-scene],[data-pin]');
+  if(ev.target.id==='chk-img'){chkPick(ev);return}
+  const t=ev.target.closest('[data-tab],[data-act],[data-cat],[data-open],[data-occ],[data-w],[data-wear],[data-ecat],[data-shape],[data-rise],[data-len],[data-color],[data-eocc],[data-season],[data-fabric],[data-style],[data-days],[data-scene],[data-pin],[data-phoi],[data-q]');
   if(!t){return}
   const d=t.dataset;
   if(d.act==='scrim'&&ev.target!==t)return;
@@ -984,6 +1150,8 @@ document.addEventListener('click',async ev=>{
   if(d.cat){S.cat=d.cat;render();return}
   if(d.pin){S.pin=S.pin===d.pin?null:d.pin;S.more=false;render();document.querySelector('.pinned')?.scrollIntoView({block:'start',behavior:'smooth'});return}
   if(d.days){TRIP.days=+d.days;render();return}
+  if(d.phoi){S.phoi=d.phoi;render();return}
+  if(d.q){const [k,v]=d.q.split(':'); if(k==='acc'){const a=CHK.acc; const i=a.indexOf(v); i>=0?a.splice(i,1):a.push(v)} else CHK.fit[k]=CHK.fit[k]===v?undefined:v; CHK.result=null; render(); return}
   if(d.scene){TRIP.scene=d.scene;render();return}
   if(d.style){S.style=d.style;S.more=false;try{localStorage.setItem('style',d.style)}catch{} render();return}
   if(d.occ){S.occ=d.occ;S.more=false;render();return}
@@ -1012,6 +1180,13 @@ document.addEventListener('click',async ev=>{
     case 'shop': openSheet(null,true); break;
     case 'shop-buy': readName(); S.editing.shop=false; S.editing.advice=null; await saveSheet(); break;
     case 'more': S.more=true;render();break;
+    case 'chk-which': CHK.picking=d.w2; render(); break;
+    case 'chk-rot': chkRotate(); break;
+    case 'chk-new': resetCheck(); render(); window.scrollTo(0,0); break;
+    case 'chk-go': CHK.result=gradeCheck(); render(); setTimeout(()=>document.getElementById('chk-result')?.scrollIntoView({block:'start',behavior:'smooth'}),50); break;
+    case 'chk-save': await saveCheck({id:uid(),at:Date.now(),thumb:CHK.thumb,top:CHK.top,low:CHK.low,fit:{...CHK.fit},acc:[...CHK.acc],s:CHK.result.s,pos:CHK.result.pos,neg:CHK.result.neg,fix:CHK.result.fix}); toast('Đã lưu vào lịch sử trả bài.'); resetCheck(); render(); document.getElementById('hist')?.scrollIntoView({block:'start',behavior:'smooth'}); break;
+    case 'chk-ask': askClaude(); break;
+    case 'chk-del': await delCheck(d.id); break;
     case 'unpin': S.pin=null;render();break;
     case 'rot': rotatePhoto();break;
     case 'pick': readName(); S.editing.picking=!S.editing.picking; drawSheet(); if(S.editing.picking)setTimeout(()=>document.getElementById('pick-img')?.scrollIntoView({block:'center',behavior:'smooth'}),50); break;
@@ -1024,13 +1199,13 @@ document.addEventListener('click',async ev=>{
 });
 document.getElementById('add').addEventListener('click',()=>openSheet(null));
 document.addEventListener('input',e=>{if(e.target.id==='f-place'){TRIP.place=e.target.value; if(!TRIP.scene){const g=guessScene(TRIP.place); document.querySelectorAll('[data-scene]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.scene===g))}}});
-document.addEventListener('change',e=>{if(e.target.id==='f-photo')handlePhoto(e.target.files[0]); if(e.target.id==='f-restore'&&e.target.files[0]){importBackup(e.target.files[0]);e.target.value=''}});
+document.addEventListener('change',e=>{if(e.target.id==='f-photo')handlePhoto(e.target.files[0]); if(e.target.id==='f-check'&&e.target.files[0]){chkPhoto(e.target.files[0]);e.target.value=''} if(e.target.id==='f-restore'&&e.target.files[0]){importBackup(e.target.files[0]);e.target.value=''}});
 document.addEventListener('submit',e=>{e.preventDefault(); if(e.target.id==='sheet')saveSheet()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.editing)closeSheet()});
 let tt; function toast(m){let el=document.querySelector('.toast'); if(!el){el=document.createElement('div');el.className='toast';el.setAttribute('role','status');document.body.appendChild(el)} el.textContent=m; clearTimeout(tt); tt=setTimeout(()=>el.remove(),2800)}
 
 render(); initStore(); loadWeather(); loadTrends();
-const APP_VERSION='18/11 · 8';
+const APP_VERSION='18/11 · 9';
 if('serviceWorker' in navigator&&location.protocol==='https:'){
   navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{
     const check=()=>reg.update().catch(()=>{});
