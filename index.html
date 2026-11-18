@@ -108,6 +108,7 @@ section{display:flex;flex-direction:column;gap:12px;margin-top:8px}
 .strip-item[aria-pressed="true"]{border-color:var(--accent)}
 .acc-tip ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:2px}
 .acc-tip{display:flex;flex-direction:column;gap:3px;background:var(--bg);border-radius:12px;padding:9px 11px;font-size:13.5px}
+.update-bar{position:fixed;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top,0px));z-index:50;border:0;border-radius:12px;background:var(--accent);color:var(--accent-ink);font-weight:600;padding:11px 16px;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
 .tips{background:var(--surface);border-radius:16px;padding:14px;box-shadow:var(--shadow);font-size:13.5px}
 .tips ul{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
 /* tab bar */
@@ -635,7 +636,7 @@ function viewWardrobe(){
     ${low?`<div class="hint">${low} món được chấm “Nên hạn chế”. Bấm vào để xem lý do và cách mặc cho đỡ.</div>`:''}
     <div class="grid">${list.map(it=>{const r=rateItem(it);return `<button class="item" data-open="${it.id}">${thumbHTML(it)}<div class="meta"><span class="name">${esc(it.name)}</span><span class="pill v${r.v.k}">${r.v.t}</span></div></button>`}).join('')}</div>
     <div class="row">${hasSample?`<button class="btn ghost small" data-act="rm-samples">Xóa các món mẫu</button>`:''}<button class="btn ghost small" data-act="backup">Sao lưu ra file</button><label class="btn ghost small" for="f-restore">Khôi phục từ file</label></div>
-    <div class="hint">Tủ đồ chỉ nằm trên máy này. Thỉnh thoảng bấm “Sao lưu ra file” để không mất khi đổi máy hay xóa dữ liệu trình duyệt.</div>
+    <div class="hint">Phiên bản ${APP_VERSION}. Tủ đồ chỉ nằm trên máy này. Thỉnh thoảng bấm “Sao lưu ra file” để không mất khi đổi máy hay xóa dữ liệu trình duyệt.</div>
   </section>`;
 }
 function installHTML(){
@@ -1029,7 +1030,21 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.editing)closeShee
 let tt; function toast(m){let el=document.querySelector('.toast'); if(!el){el=document.createElement('div');el.className='toast';el.setAttribute('role','status');document.body.appendChild(el)} el.textContent=m; clearTimeout(tt); tt=setTimeout(()=>el.remove(),2800)}
 
 render(); initStore(); loadWeather(); loadTrends();
-if('serviceWorker' in navigator&&location.protocol==='https:'){navigator.serviceWorker.register('sw.js').catch(()=>{})}
+const APP_VERSION='18/11 · 8';
+if('serviceWorker' in navigator&&location.protocol==='https:'){
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{
+    const check=()=>reg.update().catch(()=>{});
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')check()});
+    setInterval(check,30*60*1000);
+  }).catch(()=>{});
+  // có bản mới: báo để bấm cập nhật
+  let hadController=!!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(!hadController){hadController=true;return}
+    const b=document.createElement('button'); b.className='update-bar'; b.textContent='Có bản mới của app. Bấm để cập nhật';
+    b.onclick=()=>location.reload(); document.body.appendChild(b);
+  });
+}
 </script>
 
 </body>
