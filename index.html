@@ -106,6 +106,7 @@ section{display:flex;flex-direction:column;gap:12px;margin-top:8px}
 .strip-item .thumb{aspect-ratio:1;border-radius:10px;overflow:hidden}
 .strip-item .tag-sample{display:none}
 .strip-item[aria-pressed="true"]{border-color:var(--accent)}
+.acc-tip{display:flex;flex-direction:column;gap:3px;background:var(--bg);border-radius:12px;padding:9px 11px;font-size:13.5px}
 .tips{background:var(--surface);border-radius:16px;padding:14px;box-shadow:var(--shadow);font-size:13.5px}
 .tips ul{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
 /* tab bar */
@@ -573,6 +574,29 @@ function buildOutfits(){
     if(!jewel&&tc&&(tc.g==='den'||(top.shape==='v'||top.shape==='vuong'))&&!accs.length) accWhy.push('Đeo thêm dây chuyền bạc mảnh để làm sáng cổ áo');
     if(S.occ==='lam') pickAcc(['dongho'],null);
     if(w==='nong') pickAcc(['mu','kinh'],null);
+    // tủ chưa có phụ kiện phù hợp thì gợi ý bằng chữ
+    const has=t=>c.extra.some(x=>x.cat==='acc'&&t.includes(x.shape)); const tip=[];
+    const lc=C[low.color], tcol=C[top.color], occ=S.occ, rainy=wxRainy();
+    if(!c.extra.some(x=>x.cat==='shoes')){
+      let sh;
+      if(rainy) sh='giày kín mũi nhọn hoặc bốt cổ thấp màu tối, đế chống trơn';
+      else if(w==='lanh'&&lc&&lc.d===3) sh=`bốt cao cổ mũi nhọn màu ${lc.name.toLowerCase()} cùng màu quần, chân trông dài hơn`;
+      else if(occ==='lam') sh='giày mũi nhọn gót thấp màu nude, be hồng (kéo dài chân)';
+      else if(occ==='hen'||occ==='tiec') sh='giày cao gót mũi nhọn quai mảnh màu nude hoặc bạc';
+      else if(occ==='nha') sh='sandal quai mảnh hoặc giày búp bê màu nude';
+      else sh='sneaker trắng đế mỏng hoặc giày búp bê mũi nhọn';
+      tip.push(sh);
+    }
+    if(!c.extra.some(x=>x.cat==='bag')){
+      const bc=['xam-xanh','navy','hong-phan','be-hong'].find(id=>id!==top.color&&id!==low.color);
+      tip.push(occ==='lam'?`túi dáng hộp cỡ vừa màu ${C[bc].name.toLowerCase()}`:occ==='hen'||occ==='tiec'?'túi xách tay nhỏ màu bạc hoặc hồng phấn':occ==='nha'?'túi tote vải màu trắng ngà':`túi đeo chéo nhỏ màu ${C[bc].name.toLowerCase()}`);
+    }
+    if((c.main.length===1||low.rise==='cao')&&!has(['thatlung'])) tip.push(`thắt lưng bản nhỏ ${lc&&lc.d===3?'cùng màu '+lc.name.toLowerCase():'màu navy'}, khóa bạc, để nhấn eo`);
+    if(w!=='nong'&&!has(['khan'])){ const sc=['hong-phan','lavender','xam-xanh','hong-dau','xanh-baby'].find(id=>id!==top.color); tip.push(`khăn quàng ${C[sc].name.toLowerCase()} gần mặt cho da sáng`) }
+    if(!has(['daychuyen','khuyentai','vongtay','nhan'])) tip.push(['v','vuong','somi'].includes(top.shape)||c.main.length===1?'dây chuyền bạc mảnh, dài vừa chạm cổ áo':'khuyên tai bạc hoặc ngọc trai nhỏ');
+    if(S.occ==='lam'&&!has(['dongho'])) tip.push('đồng hồ dây kim loại bạc');
+    if(w==='nong'&&!has(['mu','kinh'])) tip.push('kính râm gọng bạc hoặc mũ cói');
+    c.accTip=tip.slice(0,5);
     const aw=accWhy.filter(Boolean).slice(0,2); c.pos=[...[...new Set(c.pos.filter(Boolean))].slice(0,5-aw.length),...aw]; c.neg=[...new Set(c.neg)].slice(0,2);
     c.s=Math.max(5,Math.min(100,Math.round(c.s))); c.styleTag=S.style!=='all'?S.style:bestStyle(c.main)?.id;
   });
@@ -775,6 +799,7 @@ function outfitHTML(c,i){
       <div class="scorebar" title="Độ hợp ${c.s}/100"><i style="width:${c.s}%"></i></div></div>
     <div class="pieces">${all.map(it=>`<button class="piece" data-open="${it.id}" style="border:0;background:none;padding:0;text-align:left">${thumbHTML(it)}<span>${esc(it.name)}</span></button>`).join('')}</div>
     <ul class="reasons">${c.pos.map(p=>`<li>${esc(p)}</li>`).join('')}${c.neg.map(p=>`<li class="neg">${esc(p)}</li>`).join('')}</ul>
+    ${c.accTip&&c.accTip.length?`<div class="acc-tip"><span class="label">Gợi ý giày, túi, phụ kiện</span><span>${c.accTip.map(esc).join(' · ')}</span></div>`:''}
     <div class="row"><button class="btn small" data-wear="${all.map(x=>x.id).join(',')}">Mặc bộ này hôm nay</button></div>
   </article>`;
 }
