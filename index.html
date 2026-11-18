@@ -135,6 +135,11 @@ section{display:flex;flex-direction:column;gap:12px;margin-top:8px}
 .lk-th .tag-sample{display:none}
 .lk-buy{display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:20px}
 .lk-co b{color:var(--good)} .lk-tam b{color:var(--warn)} .lk-mua b{color:var(--accent)}
+.day-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.day-wx{font-size:13px;font-weight:600;color:var(--accent)}
+.day .look-pic{width:130px;padding:0;overflow:hidden}
+.lay{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:8px}
+.lay-notes{display:flex;flex-direction:column;gap:5px;font-size:13px;background:var(--bg);border-radius:12px;padding:10px 12px}
 .sec-title{font-family:var(--f-display);font-style:italic;font-size:20px;margin:14px 0 0}
 .acc-tip ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:2px}
 .acc-tip{display:flex;flex-direction:column;gap:3px;background:var(--bg);border-radius:12px;padding:9px 11px;font-size:13.5px}
@@ -159,7 +164,7 @@ nav.tabs .tab svg{width:22px;height:22px}
 .x{border:0;background:var(--surface);width:36px;height:36px;border-radius:50%;font-size:20px;line-height:1}
 .field{display:flex;flex-direction:column;gap:6px}
 .field>label,.field>.label{font-size:13px;font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0}
-input[type=text],select{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:11px 12px}
+input[type=text],input[type=date],select{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:11px 12px}
 .picker{display:flex;flex-direction:column;gap:6px}
 .picker img{width:100%;border-radius:14px;cursor:crosshair;touch-action:manipulation}
 .photo-drop{display:flex;gap:12px;align-items:center}
@@ -737,243 +742,316 @@ function computeAdvice(e){
 /* ---------- Phối đồ du lịch ---------- */
 /* Mỗi vùng: màu nổi trên nền cảnh, màu dễ chìm, lưu ý văn hóa, và vài bộ "chuẩn" để học theo.
    Món trong bộ: cat, shapes (dáng hợp), colors (màu hợp da True Summer và cảnh), name, why */
+/* ---------- Du lịch: bộ mẫu theo vùng, theo hoạt động, theo thời tiết từng ngày ---------- */
+const P=(cat,shapes,colors,name,why)=>({cat,shapes,colors,name,why});
+const LK=(act,name,pieces,hair,pose)=>({act,name,pieces,hair,pose});
 const SCENES={
   chua:{name:'Đền chùa, di tích',words:['chùa','đền','yên tử','bái đính','tràng an','chùa hương','đại nội','lăng bác','lăng tự đức','lăng khải định','angkor','siem reap','luang prabang','phật'],
     pop:['lavender','trang-nga','xanh-baby','hong-phan','navy'],avoid:['den','cam','vang-nghe'],
-    tip:'Nơi linh thiêng: che vai và đầu gối, tránh đồ hở, quá chói hay đen tuyền. Tông pastel lạnh và trắng ngà vừa lịch sự vừa nổi trên nền gỗ, mái ngói.',
-    bring:['Khăn choàng mỏng che vai','Giày dễ cởi (búp bê, sandal quai hậu)','Túi nhỏ gọn'],
+    bg:{sky:'#F3E3C8',ground:'#9C5A3C',deco:'roof'},
+    tip:'Nơi linh thiêng: che vai và đầu gối, tránh đồ hở, quá chói hay đen tuyền. Pastel lạnh và trắng ngà vừa lịch sự vừa nổi trên nền gỗ, mái ngói.',
+    shoes:'Phải cởi giày nhiều lần và leo bậc đá: giày búp bê êm hoặc sandal quai hậu, tránh giày buộc dây và gót nhọn.',
     looks:[
-      {name:'Áo dài thanh lịch',pieces:[
-        {cat:'dress',shapes:['suong','a'],colors:['lavender','trang-nga','xanh-baby','hong-phan'],name:'Áo dài lụa hoặc váy dài tay dáng suông',len:'maxi',why:'kín đáo, lên ảnh rất hợp không khí cổ kính'},
-        {cat:'shoes',shapes:['bupbe','muinhon'],colors:['trang-nga','be-hong','bac'],name:'Giày búp bê dễ cởi khi vào chùa'},
-        {cat:'acc',shapes:['khuyentai'],colors:['ngoc-trai','bac'],name:'Khuyên tai ngọc trai nhỏ'}]},
-      {name:'Sơ mi và váy xếp ly dài',pieces:[
-        {cat:'top',shapes:['somi','v'],colors:['xanh-baby','trang-nga','lavender'],name:'Sơ mi tay dài cổ V sáng màu',why:'che vai, cổ V thanh thoát'},
-        {cat:'skirt',shapes:['xepl','a'],colors:['navy','xam-than','tim-than'],name:'Chân váy xếp ly dài qua bắp chân màu tối',len:'midi',why:'che gối, giấu hông'},
-        {cat:'shoes',shapes:['bupbe','quaimanh'],colors:['trang-nga','be-hong','bac'],name:'Búp bê hoặc sandal quai hậu'},
-        {cat:'bag',shapes:['nho'],colors:['xam-xanh','be-hong','navy'],name:'Túi đeo chéo nhỏ'}]},
+      LK('Lễ chùa buổi sáng','Áo dài thanh lịch',[P('dress',['suong','a'],['lavender','trang-nga','xanh-baby','hong-phan'],'Áo dài lụa hoặc váy dài tay dáng suông','kín đáo, hợp không khí cổ kính'),P('shoes',['bupbe'],['trang-nga','be-hong','bac'],'Giày búp bê dễ cởi'),P('acc',['khuyentai'],['ngoc-trai','bac'],'Khuyên tai ngọc trai nhỏ'),P('bag',['nho'],['trang-nga','be-hong'],'Túi nhỏ cầm tay')],
+        {k:'buithap',t:'Búi thấp gọn sau gáy, kẹp ngọc trai'},'Đứng nghiêng ở bậc thềm, chắp tay nhẹ hoặc cầm nhành hoa sen; chụp ngang tầm ngực để dáng cao.'),
+      LK('Tham quan di tích','Sơ mi và váy xếp ly dài',[P('top',['somi','v'],['xanh-baby','trang-nga','lavender'],'Sơ mi tay dài cổ V sáng màu','che vai, cổ V thanh thoát'),P('skirt',['xepl','a'],['navy','xam-than','tim-than'],'Chân váy xếp ly dài qua bắp chân màu tối','che gối, giấu hông'),P('shoes',['bupbe','quaimanh'],['trang-nga','be-hong','bac'],'Búp bê hoặc sandal quai hậu'),P('bag',['nho'],['xam-xanh','be-hong','navy'],'Túi đeo chéo nhỏ')],
+        {k:'xoa',t:'Xõa thẳng, kẹp một bên tóc mai'},'Đi chậm qua cổng, nhìn sang bên; để cổng đỏ hoặc mái ngói làm khung phía sau.'),
+      LK('Leo bậc đá cả ngày','Gọn gàng mà vẫn kín đáo',[P('top',['v','tron'],['trang-nga','hong-phan'],'Áo thun dài tay hoặc len mỏng sáng màu'),P('bottom',['suong','rong'],['navy','xam-than'],'Quần ống suông cạp cao co giãn nhẹ','bước dài thoải mái, che đùi'),P('shoes',['sneaker'],['trang','trang-nga'],'Sneaker êm'),P('acc',['mu'],['trang-nga','kem'],'Mũ vành nhỏ')],
+        {k:'duoi',t:'Đuôi ngựa thấp cho gọn'},'Chụp từ bậc thấp hơn hướng lên, người đứng một chân lên bậc trên.'),
+      LK('Ăn chay, dạo quanh chiều tối','Váy suông và cardigan',[P('dress',['suong','a'],['trang-nga','xanh-baby'],'Váy dáng suông dài qua gối'),P('outer',['crop'],['hong-phan','lavender','trang-nga'],'Cardigan len ngắn'),P('shoes',['bupbe'],['trang-nga','be-hong'],'Giày búp bê'),P('acc',['daychuyen'],['ngoc-trai','bac'],'Dây chuyền ngọc trai')],
+        {k:'tet',t:'Tết lệch một bên'},'Ngồi bên hồ sen, nghiêng người nhìn mặt nước.'),
     ]},
-  au:{name:'Thành phố nước ngoài',words:['seoul','hàn quốc','tokyo','osaka','kyoto','nhật bản','paris','châu âu','london','nước ý','italy','rome','milan','đài bắc','đài loan','thượng hải','bắc kinh','hong kong','nước úc','sydney','melbourne','new york','thụy sĩ'],
+  au:{name:'Thành phố nước ngoài',words:['seoul','hàn quốc','busan','jeju','tokyo','osaka','kyoto','nhật bản','paris','châu âu','london','nước ý','italy','rome','milan','đài bắc','đài loan','thượng hải','bắc kinh','hong kong','nước úc','sydney','melbourne','new york','thụy sĩ'],
     pop:['navy','xam-xanh','hong-dau','mam-xoi','trang-nga','lavender'],avoid:['kem','be-hong'],
-    tip:'Phố sang, tông xám và nâu: mặc theo kiểu tối giản, một màu nhấn (hồng dâu, mâm xôi) là ảnh có chiều sâu. Đi bộ nhiều nên chọn giày êm có chút gót.',
-    bring:['Áo khoác dáng dài','Giày đi bộ êm có gót thấp','Túi đeo chéo có khóa'],
+    bg:{sky:'#DCE2EA',ground:'#A9A4A0',deco:'city'},
+    tip:'Phố sang, tông xám và nâu: mặc tối giản, một món màu nhấn (hồng dâu, mâm xôi) là ảnh có chiều sâu.',
+    shoes:'Đi bộ 15.000 bước mỗi ngày trên vỉa hè đá: bốt gót vuông 3 đến 5 cm hoặc sneaker da sạch; mang thêm miếng dán chống phồng.',
     looks:[
-      {name:'Măng tô và quần suông',pieces:[
-        {cat:'outer',shapes:['dai'],colors:['xam-nhat','xam-xanh','navy','hong-dau'],name:'Măng tô dáng dài qua gối',why:'tạo đường dọc, che hông, rất sang'},
-        {cat:'top',shapes:['v','vuong'],colors:['trang-nga','hong-phan','lavender'],name:'Áo len mỏng cổ V sáng màu'},
-        {cat:'bottom',shapes:['suong','rong'],colors:['navy','xam-than','den'],name:'Quần ống suông cạp cao màu tối',why:'chân dài, đùi gọn'},
-        {cat:'shoes',shapes:['muinhon','botcao'],colors:['den','xam-than','navy'],name:'Giày mũi nhọn gót thấp hoặc bốt cao'},
-        {cat:'acc',shapes:['khan'],colors:['hong-dau','mam-xoi','lavender'],name:'Khăn quàng màu nhấn'}]},
-      {name:'Váy xếp ly và áo khoác ngắn',pieces:[
-        {cat:'outer',shapes:['crop'],colors:['navy','xam-than','trang-nga'],name:'Áo khoác ngắn ngang eo (tweed hoặc da)',why:'nâng vòng eo, chân dài hơn'},
-        {cat:'top',shapes:['v','tron','somi'],colors:['trang-nga','xanh-baby','hong-phan'],name:'Áo sáng màu bên trong'},
-        {cat:'skirt',shapes:['xepl','a'],colors:['xam-than','navy','tim-than'],name:'Chân váy xếp ly midi tối màu',len:'midi'},
-        {cat:'shoes',shapes:['botcao','muinhon'],colors:['den','xam-than'],name:'Bốt cao cổ ôm bắp chân'},
-        {cat:'bag',shapes:['nho','vua'],colors:['mam-xoi','hong-dau','navy'],name:'Túi nhỏ màu mâm xôi làm điểm nhấn'}]},
+      LK('Dạo phố, check-in','Măng tô và quần suông',[P('outer',['dai'],['xam-nhat','xam-xanh','navy','hong-dau'],'Măng tô dáng dài qua gối','đường dọc, che hông, rất sang'),P('top',['v','vuong'],['trang-nga','hong-phan','lavender'],'Áo len mỏng cổ V sáng màu'),P('bottom',['suong','rong'],['navy','xam-than','den'],'Quần ống suông cạp cao màu tối'),P('shoes',['muinhon','botcao'],['den','xam-than','navy'],'Giày mũi nhọn gót vuông thấp'),P('acc',['khan'],['hong-dau','mam-xoi','lavender'],'Khăn quàng màu nhấn')],
+        {k:'xoa',t:'Xõa sóng lơi, rẽ ngôi lệch'},'Bước qua đường, tay đút túi áo khoác, để vạt măng tô bay; chụp hơi thấp.'),
+      LK('Cà phê, mua sắm','Váy xếp ly và áo khoác ngắn',[P('outer',['crop'],['navy','xam-than','trang-nga'],'Áo khoác ngắn ngang eo (tweed hoặc da)','nâng vòng eo, chân dài hơn'),P('top',['v','tron','somi'],['trang-nga','xanh-baby','hong-phan'],'Áo sáng màu bên trong'),P('skirt',['xepl','a'],['xam-than','navy','tim-than'],'Chân váy xếp ly midi tối màu'),P('shoes',['botcao'],['den','xam-than'],'Bốt cao cổ ôm bắp chân'),P('bag',['nho','vua'],['mam-xoi','hong-dau','navy'],'Túi nhỏ màu mâm xôi làm điểm nhấn')],
+        {k:'buicao',t:'Búi củ tỏi cao, kéo vài lọn mai'},'Ngồi cạnh cửa kính quán cà phê, nhìn ra ngoài, tay cầm ly.'),
+      LK('Cung điện, thuê đồ truyền thống','Hanbok hoặc kimono thuê',[P('rent',['a'],['hong-phan','lavender','xanh-baby','trang-nga'],'Thuê hanbok hoặc kimono tông pastel lạnh','tránh màu vàng, cam ở tiệm thuê'),P('shoes',['bupbe'],['trang-nga','be-hong'],'Giày búp bê (tiệm thường cho mượn)'),P('acc',['khuyentai'],['ngoc-trai','bac'],'Khuyên tai ngọc trai')],
+        {k:'buithap',t:'Nhờ tiệm búi thấp, cài trâm'},'Đứng giữa cổng, xoay người 3/4, tay cầm vạt áo; chụp lúc sáng sớm vắng người.'),
+      LK('Ăn tối','Váy quấn và măng tô',[P('dress',['wrap','thateo'],['navy','mam-xoi','tim-than'],'Váy quấn midi màu đậm','cổ V, eo rõ, giấu hông'),P('outer',['dai'],['xam-nhat','trang-nga','navy'],'Măng tô dáng dài'),P('shoes',['muinhon'],['den','navy','bac'],'Giày mũi nhọn có gót'),P('acc',['daychuyen'],['bac','ngoc-trai'],'Dây chuyền bạc mảnh')],
+        {k:'xoa',t:'Xõa, uốn cụp đuôi'},'Chụp dưới đèn đường vàng, bán thân, khoác hờ áo trên vai.'),
     ]},
   tuyet:{name:'Xứ lạnh, tuyết',words:['tuyết','hokkaido','phần lan','mông cổ','băng','trượt tuyết','sapporo','harbin','cáp nhĩ tân'],
     pop:['mam-xoi','hong-dau','navy','tim-than','lavender'],avoid:['trang','trang-nga','xam-nhat'],
-    tip:'Nền trắng tuyết: áo khoác mâm xôi, hồng dâu, navy sẽ nổi bật hẳn. Tránh áo khoác trắng, xám nhạt vì bị chìm.',
-    bring:['Giữ nhiệt, tất len','Bốt chống trơn','Găng tay, mũ len','Son dưỡng, kem dưỡng'],
+    bg:{sky:'#E4EAF2',ground:'#FAFBFD',deco:'snow'},
+    tip:'Nền trắng tuyết: áo khoác mâm xôi, hồng dâu, navy nổi bật hẳn. Tránh áo khoác trắng, xám nhạt vì bị chìm.',
+    shoes:'Băng trơn và ướt: bốt chống trơn có gai đế, chống thấm, cổ cao; tất len dày.',
     looks:[
-      {name:'Khoác dài màu nhấn',pieces:[
-        {cat:'outer',shapes:['dai'],colors:['mam-xoi','hong-dau','navy','tim-than'],name:'Áo phao hoặc măng tô dáng dài màu đậm',why:'nổi trên nền tuyết, che hông'},
-        {cat:'top',shapes:['v','lo'],colors:['trang-nga','hong-phan','lavender'],name:'Áo len dày sáng màu'},
-        {cat:'bottom',shapes:['suong','dung'],colors:['xam-than','navy','den'],name:'Quần ống đứng lót nỉ màu tối'},
-        {cat:'shoes',shapes:['botcao','botthap'],colors:['den','xam-than'],name:'Bốt chống trơn cổ cao'},
-        {cat:'acc',shapes:['khan','mu'],colors:['lavender','hong-phan','trang-nga'],name:'Khăn và mũ len pastel'}]},
-      {name:'Váy len và bốt',pieces:[
-        {cat:'dress',shapes:['a','thateo'],colors:['navy','tim-than','mam-xoi'],name:'Váy len dáng chữ A dài qua gối',len:'midi'},
-        {cat:'outer',shapes:['dai'],colors:['hong-dau','xam-nhat','navy'],name:'Áo khoác dáng dài'},
-        {cat:'shoes',shapes:['botcao'],colors:['den','xam-than'],name:'Bốt cao kèm tất len dày'},
-        {cat:'acc',shapes:['mu'],colors:['trang-nga','hong-phan'],name:'Mũ len'}]},
+      LK('Chơi tuyết','Áo phao màu nhấn',[P('outer',['dai'],['mam-xoi','hong-dau','navy'],'Áo phao dáng dài màu đậm','nổi trên tuyết, che hông'),P('top',['v','lo'],['trang-nga','hong-phan','lavender'],'Áo len dày sáng màu'),P('bottom',['suong','dung'],['xam-than','navy','den'],'Quần ống đứng lót nỉ màu tối'),P('shoes',['botcao'],['den','xam-than'],'Bốt chống trơn cổ cao'),P('acc',['mu'],['trang-nga','hong-phan'],'Mũ len và găng tay pastel')],
+        {k:'tet',t:'Hai bím tết thấp dưới mũ len'},'Tung tuyết lên cao, chụp liên tục; mặc màu đậm để không chìm.'),
+      LK('Dạo phố tuyết','Váy len và bốt',[P('dress',['a','thateo'],['navy','tim-than','mam-xoi'],'Váy len chữ A dài qua gối'),P('outer',['dai'],['hong-dau','xam-nhat','navy'],'Măng tô dạ dáng dài'),P('shoes',['botcao'],['den','xam-than'],'Bốt cao'),P('acc',['khan'],['lavender','hong-phan'],'Khăn len to bản')],
+        {k:'xoa',t:'Xõa, quấn khăn len to quanh cổ'},'Đứng dưới đèn đường lúc tuyết rơi, ngửa mặt nhìn trời.'),
+      LK('Onsen, bảo tàng, trong nhà','Len và quần ống rộng',[P('top',['v','vuong'],['lavender','hong-phan','trang-nga'],'Áo len cổ V'),P('bottom',['rong','suong'],['xam-than','navy'],'Quần ống rộng cạp cao'),P('outer',['dai'],['navy','xam-xanh'],'Áo khoác dài dễ cởi'),P('shoes',['sneaker','botcao'],['trang','den'],'Giày dễ cởi'),P('bag',['vua'],['xam-xanh','navy'],'Túi vừa đựng găng, mũ')],
+        {k:'buicao',t:'Búi cao cho gọn khi cởi mũ'},'Ngồi cạnh cửa sổ có tuyết bên ngoài, cầm ly trà.'),
+      LK('Ăn tối','Váy thắt eo màu mâm xôi',[P('dress',['thateo','wrap'],['mam-xoi','hong-dau','navy'],'Váy thắt eo midi dài tay'),P('outer',['dai'],['xam-nhat','navy'],'Măng tô dạ'),P('shoes',['botcao'],['den'],'Bốt cao'),P('acc',['khuyentai'],['bac'],'Khuyên tai bạc')],
+        {k:'xoa',t:'Xõa sóng nhẹ'},'Chụp bán thân trong quán ánh đèn ấm.'),
     ]},
   bien:{name:'Biển',words:['biển','bien','phú quốc','phu quoc','nha trang','đà nẵng','da nang','quy nhơn','vũng tàu','côn đảo','hạ long','cát bà','mũi né','sầm sơn','cửa lò','bali','phuket','maldives','boracay'],
     pop:['hong-dau','mam-xoi','trang-nga','lavender','hong-phan','trang'],avoid:['xanh-baby','mint','teal-diu'],
-    tip:'Nền xanh biển, cát trắng: mặc hồng dâu, đỏ mâm xôi hay trắng ngà sẽ nổi bật. Tránh xanh biển, xanh mint vì chìm vào nước.',
-    bring:['Đồ bơi kèm khăn choàng hoặc váy quấn','Kính râm, mũ rộng vành','Kem chống nắng'],
+    bg:{sky:'#BFE1F0',ground:'#F0E2C4',deco:'sea'},
+    tip:'Nền xanh biển, cát trắng: hồng dâu, đỏ mâm xôi, trắng ngà nổi bật. Tránh xanh biển, xanh mint vì chìm vào nước.',
+    shoes:'Cát lún và nóng: sandal quai mảnh đế bằng hoặc đế xuồng cói; tránh gót nhọn.',
     looks:[
-      {name:'Váy maxi bay trong gió',pieces:[
-        {cat:'dress',shapes:['a','thateo','wrap'],colors:['hong-dau','mam-xoi','trang-nga','lavender'],name:'Váy maxi chữ A, thắt eo',len:'maxi',why:'bay trong gió rất ăn ảnh, che hông'},
-        {cat:'acc',shapes:['mu'],colors:['kem','trang-nga'],name:'Mũ cói rộng vành'},
-        {cat:'shoes',shapes:['quaimanh'],colors:['trang-nga','be-hong','bac'],name:'Sandal quai mảnh'},
-        {cat:'acc',shapes:['khuyentai'],colors:['bac','ngoc-trai'],name:'Khuyên tai bạc to bản'}]},
-      {name:'Áo trễ vai và quần ống rộng',pieces:[
-        {cat:'top',shapes:['thuyen','vuong'],colors:['trang-nga','trang','hong-phan'],name:'Áo trễ vai hoặc cổ vuông sáng màu',why:'mở rộng vai, cân với hông'},
-        {cat:'bottom',shapes:['rong','suong'],colors:['navy','mam-xoi','trang-nga'],name:'Quần linen ống rộng cạp cao'},
-        {cat:'acc',shapes:['thatlung'],colors:['bac','be-hong'],name:'Thắt lưng mảnh'},
-        {cat:'shoes',shapes:['quaimanh'],colors:['trang-nga','bac'],name:'Sandal quai mảnh'},
-        {cat:'acc',shapes:['kinh'],colors:['bac','xam-than'],name:'Kính râm gọng bạc'}]},
+      LK('Dạo biển, hoàng hôn','Váy maxi bay trong gió',[P('dress',['a','thateo','wrap'],['hong-dau','mam-xoi','trang-nga','lavender'],'Váy maxi chữ A thắt eo','bay trong gió, che hông'),P('acc',['mu'],['kem','trang-nga'],'Mũ cói rộng vành'),P('shoes',['quaimanh'],['trang-nga','be-hong','bac'],'Sandal quai mảnh'),P('acc',['khuyentai'],['bac','ngoc-trai'],'Khuyên tai bạc to bản')],
+        {k:'xoa',t:'Xõa sóng, buộc khăn lụa nếu gió'},'Đứng chéo 45 độ, một tay giữ mũ, để gió thổi váy; chụp từ thấp ngang hông.'),
+      LK('Đi chơi ban ngày','Áo trễ vai và quần ống rộng',[P('top',['thuyen','vuong'],['trang-nga','trang','hong-phan'],'Áo trễ vai hoặc cổ vuông sáng màu','mở rộng vai, cân với hông'),P('bottom',['rong','suong'],['navy','mam-xoi'],'Quần linen ống rộng cạp cao'),P('acc',['thatlung'],['bac','be-hong'],'Thắt lưng mảnh'),P('shoes',['quaimanh'],['trang-nga','bac'],'Sandal quai mảnh'),P('acc',['kinh'],['bac','xam-than'],'Kính râm gọng bạc')],
+        {k:'duoi',t:'Đuôi ngựa cao, buộc khăn lụa'},'Bước đi trên cầu gỗ, chụp liên tục từ phía trước.'),
+      LK('Tắm biển, hồ bơi','Đồ bơi kín hông',[P('layer',['x'],['mam-xoi','navy','hong-dau'],'Đồ bơi liền thân cổ V có nhún eo','gọn eo, cổ V cân vai ngang'),P('skirt',['a','xoe'],['trang-nga','hong-phan'],'Váy quấn voan dài che hông'),P('shoes',['deple','quaimanh'],['trang-nga'],'Dép đi biển'),P('acc',['mu'],['kem'],'Mũ cói')],
+        {k:'buicao',t:'Búi cao cho gọn'},'Ngồi nghiêng trên cát, chân duỗi chéo, nhìn ra biển.'),
+      LK('Ăn tối ven biển','Váy quấn và sandal gót',[P('dress',['wrap','thateo'],['lavender','hong-phan','mam-xoi'],'Váy quấn midi'),P('shoes',['quaimanh','muinhon'],['bac','be-hong'],'Sandal quai mảnh có gót vuông'),P('bag',['nho'],['bac','trang-nga'],'Ví cầm tay bạc'),P('acc',['daychuyen'],['bac'],'Dây chuyền bạc')],
+        {k:'buithap',t:'Búi thấp, để vài lọn mai'},'Chụp ngược sáng hoàng hôn, bán thân, nghiêng đầu.'),
     ]},
   nui:{name:'Núi, đồi thông',words:['đà lạt','da lat','sa pa','sapa','mộc châu','hà giang','tam đảo','mù cang chải','tây bắc','núi','đồi','rừng','bảo lộc','măng đen','ba vì','fansipan'],
     pop:['hong-phan','hong-dau','trang-nga','lavender','mam-xoi'],avoid:['teal-diu','mint','xam-xanh','reu'],
-    tip:'Nền xanh lá, sương mù: chọn hồng phấn, hồng dâu, trắng ngà, lavender cho nổi; tránh xanh lá, xanh rêu bị chìm vào cảnh. Sáng tối lạnh nên mặc nhiều lớp.',
-    bring:['Khăn quàng màu hồng hoặc lavender','Giày kín đế bám','Mũ len hoặc mũ nồi'],
+    bg:{sky:'#DDE6E3',ground:'#6F9A7B',deco:'pine'},
+    tip:'Nền xanh lá, sương mù: hồng phấn, hồng dâu, trắng ngà, lavender nổi lên; tránh xanh lá, xanh rêu bị chìm. Sáng tối lạnh, trưa nắng: mặc nhiều lớp.',
+    shoes:'Dốc và sương ướt: bốt cổ cao đế bám hoặc sneaker đế răng cưa; không đi giày đế trơn.',
     looks:[
-      {name:'Len hồng và váy xếp ly',pieces:[
-        {cat:'top',shapes:['v','vuong'],colors:['hong-phan','trang-nga','lavender'],name:'Áo len cổ V màu pastel'},
-        {cat:'skirt',shapes:['xepl','a'],colors:['navy','xam-than','tim-than'],name:'Chân váy xếp ly midi tối màu',len:'midi'},
-        {cat:'outer',shapes:['dai'],colors:['trang-nga','xam-nhat','hong-dau'],name:'Măng tô dáng dài'},
-        {cat:'shoes',shapes:['botcao'],colors:['den','xam-than'],name:'Bốt cao'},
-        {cat:'acc',shapes:['mu'],colors:['trang-nga','hong-dau','navy'],name:'Mũ nồi'}]},
-      {name:'Váy liền và khoác dài',pieces:[
-        {cat:'dress',shapes:['thateo','a','wrap'],colors:['mam-xoi','hong-dau','lavender'],name:'Váy thắt eo midi màu nổi',len:'midi',why:'màu nổi trên nền rừng thông'},
-        {cat:'outer',shapes:['dai'],colors:['trang-nga','xam-nhat','navy'],name:'Áo khoác dáng dài màu trung tính'},
-        {cat:'shoes',shapes:['botcao','muinhon'],colors:['den','xam-than'],name:'Bốt cao hoặc giày mũi nhọn'},
-        {cat:'acc',shapes:['khan'],colors:['trang-nga','hong-phan'],name:'Khăn len sáng màu'}]},
+      LK('Dạo hồ, cà phê sáng','Len hồng và váy xếp ly',[P('top',['v','vuong'],['hong-phan','trang-nga','lavender'],'Áo len cổ V màu pastel'),P('skirt',['xepl','a'],['navy','xam-than','tim-than'],'Chân váy xếp ly midi tối màu'),P('outer',['dai'],['trang-nga','xam-nhat','hong-dau'],'Măng tô dáng dài'),P('shoes',['botcao'],['den','xam-than'],'Bốt cao'),P('acc',['mu'],['trang-nga','navy'],'Mũ nồi')],
+        {k:'xoa',t:'Xõa, đội mũ nồi lệch một bên'},'Cầm ly cà phê hai tay, nhìn ra hồ; sương sớm làm ảnh mềm.'),
+      LK('Chụp đồi chè, rừng thông','Váy đỏ giữa rừng xanh',[P('dress',['thateo','a','wrap'],['mam-xoi','hong-dau','lavender'],'Váy thắt eo midi màu nổi','màu đỏ mâm xôi nổi bật trên nền xanh'),P('outer',['dai'],['trang-nga','xam-nhat'],'Áo khoác dáng dài màu sáng'),P('shoes',['botcao'],['den','xam-than'],'Bốt cao'),P('acc',['khan'],['trang-nga','hong-phan'],'Khăn len sáng màu')],
+        {k:'tet',t:'Tết xương cá lệch một bên'},'Quay lưng nửa người rồi ngoái lại, váy xòe theo bước chân.'),
+      LK('Leo núi, đi bộ đường dài','Năng động mà gọn',[P('top',['v','tron'],['trang-nga','hong-phan'],'Áo thun dài tay'),P('bottom',['suong','dung'],['navy','xam-than'],'Quần ống suông co giãn'),P('outer',['crop'],['hong-dau','lavender'],'Áo khoác gió có mũ màu nổi'),P('shoes',['sneaker'],['trang','xam-nhat'],'Sneaker đế bám'),P('bag',['nho'],['navy'],'Túi đeo chéo nhỏ')],
+        {k:'duoi',t:'Đuôi ngựa thấp, đội mũ lưỡi trai'},'Đứng trên mỏm đá giang hai tay, chụp từ phía sau thấy cả thung lũng.'),
+      LK('Ăn tối, chợ đêm','Len và quần ống rộng',[P('top',['v'],['lavender','hong-phan'],'Áo len cổ V'),P('bottom',['rong','suong'],['xam-than','navy'],'Quần ống rộng cạp cao'),P('outer',['dai'],['navy','hong-dau'],'Măng tô dạ'),P('shoes',['botcao','muinhon'],['den'],'Bốt cao'),P('acc',['khan'],['lavender','hong-phan'],'Khăn len')],
+        {k:'buicao',t:'Búi rối cao'},'Chụp bên hàng nướng, khói và đèn vàng làm ảnh ấm.'),
     ]},
-  lua:{name:'Đồng lúa, đồng hoa',words:['đồng lúa','ruộng','tam cốc','ninh bình','cánh đồng','mai châu','pù luông','hoa tam giác mạch','đồi chè'],
+  lua:{name:'Đồng lúa, đồng hoa',words:['đồng lúa','ruộng','tam cốc','ninh bình','cánh đồng','mai châu','pù luông','tam giác mạch','đồi chè'],
     pop:['trang-nga','hong-phan','xanh-baby','lavender','hong-dau'],avoid:['kem','be-hong','mint','vang-nghe'],
-    tip:'Nền lúa vàng hoặc xanh: váy trắng ngà, hồng phấn, xanh baby trông rất trong trẻo. Tránh vàng, be vì trùng màu lúa chín.',
-    bring:['Mũ cói','Giày đế bằng dễ đi bờ ruộng','Kem chống nắng'],
+    bg:{sky:'#CFE6F3',ground:'#D9C35E',deco:'field'},
+    tip:'Nền lúa vàng hoặc xanh: trắng ngà, hồng phấn, xanh baby trông trong trẻo. Tránh vàng, be vì trùng màu lúa chín.',
+    shoes:'Bờ ruộng hẹp, có thể lầy: sandal quai hậu đế bằng hoặc giày vải dễ rửa.',
     looks:[
-      {name:'Váy trắng và mũ cói',pieces:[
-        {cat:'dress',shapes:['babydoll','thateo','a'],colors:['trang-nga','trang','hong-phan'],name:'Váy babydoll hoặc thắt eo midi trắng ngà',len:'midi',why:'trong trẻo giữa đồng lúa, xòe che hông'},
-        {cat:'acc',shapes:['mu'],colors:['kem','trang-nga'],name:'Mũ cói rộng vành'},
-        {cat:'shoes',shapes:['bupbe','quaimanh'],colors:['trang-nga','be-hong'],name:'Búp bê hoặc sandal đế bằng'}]},
-      {name:'Áo cổ vuông và váy xòe',pieces:[
-        {cat:'top',shapes:['vuong','thuyen'],colors:['hong-phan','trang-nga','xanh-baby'],name:'Áo cổ vuông tay phồng nhẹ'},
-        {cat:'skirt',shapes:['xoe','a'],colors:['lavender','xanh-baby','navy'],name:'Chân váy xòe midi',len:'midi'},
-        {cat:'shoes',shapes:['bupbe','quaimanh'],colors:['trang-nga','be-hong'],name:'Giày búp bê'},
-        {cat:'bag',shapes:['nho'],colors:['kem','trang-nga'],name:'Túi cói nhỏ'}]},
+      LK('Chụp đồng lúa','Váy trắng và mũ cói',[P('dress',['babydoll','thateo','a'],['trang-nga','trang','hong-phan'],'Váy babydoll midi trắng ngà','trong trẻo giữa đồng, xòe che hông'),P('acc',['mu'],['kem','trang-nga'],'Mũ cói rộng vành'),P('shoes',['bupbe','quaimanh'],['trang-nga','be-hong'],'Sandal quai hậu đế bằng')],
+        {k:'tet',t:'Tết lệch kèm ruy băng'},'Đi giữa bờ ruộng, ngoái lại cười; chụp góc rộng thấy cả cánh đồng.'),
+      LK('Đi thuyền, đạp xe','Áo cổ vuông và váy xòe',[P('top',['vuong','thuyen'],['hong-phan','trang-nga','xanh-baby'],'Áo cổ vuông tay phồng nhẹ'),P('skirt',['xoe','a'],['lavender','navy'],'Chân váy xòe midi'),P('shoes',['quaimanh','bupbe'],['trang-nga'],'Sandal quai hậu'),P('bag',['nho'],['kem','trang-nga'],'Túi cói nhỏ')],
+        {k:'buithap',t:'Búi thấp, buộc khăn lụa'},'Ngồi đầu thuyền, nghiêng người nhìn núi đá.'),
+      LK('Leo hang, đi bộ','Gọn và mát',[P('top',['tron','v'],['trang-nga','hong-phan'],'Áo thun cotton sáng màu'),P('bottom',['rong','suong'],['navy','xam-than'],'Quần linen ống rộng'),P('shoes',['sneaker'],['trang'],'Sneaker'),P('acc',['mu'],['trang-nga'],'Mũ lưỡi trai')],
+        {k:'duoi',t:'Đuôi ngựa cao'},'Chụp ở đỉnh, quay lưng nhìn xuống thung lũng.'),
+      LK('Ăn tối homestay','Váy xanh baby và cardigan',[P('dress',['a','thateo'],['xanh-baby','lavender'],'Váy chữ A midi'),P('outer',['crop'],['trang-nga','hong-phan'],'Cardigan len ngắn'),P('shoes',['quaimanh','bupbe'],['trang-nga'],'Sandal'),P('acc',['khuyentai'],['ngoc-trai'],'Khuyên tai ngọc trai')],
+        {k:'xoa',t:'Xõa tự nhiên'},'Ngồi hiên nhà sàn, đèn vàng phía sau.'),
     ]},
   pho:{name:'Phố cổ, thành phố',words:['phố cổ','hội an','hà nội','sài gòn','hồ chí minh','huế','bangkok','singapore','kuala lumpur','thành phố','phố'],
     pop:['navy','trang-nga','xanh-baby','hong-phan','lavender','mam-xoi'],avoid:['kem','be-hong','vang-nghe'],
+    bg:{sky:'#F2E2B0',ground:'#C9B48A',deco:'lantern'},
     tip:'Tường vàng, mái ngói, đèn lồng: navy, trắng ngà, xanh baby nổi bật mà vẫn sang. Tránh be, vàng trùng màu tường.',
-    bring:['Giày đi bộ êm','Túi đeo chéo gọn','Áo khoác mỏng cho tối'],
+    shoes:'Đi bộ cả ngày trên đường lát gạch: búp bê đế êm hoặc sneaker; tối đổi sang sandal gót vuông thấp.',
     looks:[
-      {name:'Áo dài phố cổ',pieces:[
-        {cat:'dress',shapes:['suong','a'],colors:['xanh-baby','trang-nga','lavender','hong-phan'],name:'Áo dài hoặc váy dài dáng suông',len:'maxi',why:'cực hợp tường vàng, đèn lồng'},
-        {cat:'shoes',shapes:['bupbe','muinhon'],colors:['trang-nga','be-hong','bac'],name:'Giày búp bê'},
-        {cat:'bag',shapes:['nho'],colors:['trang-nga','hong-phan','bac'],name:'Túi nhỏ cầm tay'}]},
-      {name:'Sơ mi và váy chữ A',pieces:[
-        {cat:'top',shapes:['somi','v'],colors:['trang-nga','trang','xanh-baby'],name:'Sơ mi trắng ngà mở cúc cổ'},
-        {cat:'skirt',shapes:['a','xepl'],colors:['navy','xam-than'],name:'Chân váy chữ A midi navy',len:'midi'},
-        {cat:'shoes',shapes:['bupbe','sneaker'],colors:['trang','trang-nga'],name:'Sneaker trắng hoặc búp bê'},
-        {cat:'bag',shapes:['nho'],colors:['mam-xoi','hong-dau','navy'],name:'Túi đeo chéo màu nhấn'},
-        {cat:'acc',shapes:['daychuyen'],colors:['bac','ngoc-trai'],name:'Dây chuyền bạc mảnh'}]},
+      LK('Áo dài phố cổ','Áo dài và đèn lồng',[P('dress',['suong','a'],['xanh-baby','trang-nga','lavender','hong-phan'],'Áo dài hoặc váy dài dáng suông','cực hợp tường vàng, đèn lồng'),P('shoes',['bupbe','muinhon'],['trang-nga','be-hong','bac'],'Giày búp bê'),P('bag',['nho'],['trang-nga','hong-phan','bac'],'Túi nhỏ cầm tay'),P('acc',['khuyentai'],['ngoc-trai'],'Khuyên tai ngọc trai')],
+        {k:'buithap',t:'Búi thấp hoặc xõa thẳng, cài kẹp ngọc trai'},'Đứng sát tường vàng, tay cầm nón lá hoặc đèn lồng, nghiêng đầu.'),
+      LK('Dạo phố ban ngày','Sơ mi và váy chữ A',[P('top',['somi','v'],['trang-nga','trang','xanh-baby'],'Sơ mi trắng ngà mở cúc cổ'),P('skirt',['a','xepl'],['navy','xam-than'],'Chân váy chữ A midi navy'),P('shoes',['bupbe','sneaker'],['trang','trang-nga'],'Sneaker trắng hoặc búp bê'),P('bag',['nho'],['mam-xoi','hong-dau','navy'],'Túi đeo chéo màu nhấn'),P('acc',['daychuyen'],['bac','ngoc-trai'],'Dây chuyền bạc mảnh')],
+        {k:'xoa',t:'Xõa, kẹp càng cua nửa đầu'},'Đi xe đạp chậm qua phố, chụp từ bên hông.'),
+      LK('Cà phê, bảo tàng','Áo cổ vuông và quần suông',[P('top',['vuong','v'],['xanh-baby','hong-phan'],'Áo cổ vuông'),P('bottom',['suong','rong'],['navy','xam-than'],'Quần ống suông cạp cao'),P('acc',['thatlung'],['bac','navy'],'Thắt lưng mảnh'),P('shoes',['muinhon'],['be-hong','bac'],'Giày mũi nhọn gót thấp'),P('bag',['vua'],['navy','xam-xanh'],'Túi vừa')],
+        {k:'buicao',t:'Búi cao gọn'},'Ngồi ban công quán, góc chụp từ trên xuống thấy mái ngói.'),
+      LK('Ăn tối, phố đèn lồng','Váy quấn mâm xôi',[P('dress',['wrap','thateo'],['mam-xoi','hong-dau'],'Váy quấn midi mâm xôi','nổi bật dưới ánh đèn vàng'),P('shoes',['quaimanh'],['bac','be-hong'],'Sandal gót vuông thấp'),P('bag',['nho'],['bac'],'Ví cầm tay bạc'),P('acc',['khuyentai'],['bac'],'Khuyên tai bạc')],
+        {k:'xoa',t:'Xõa sóng nhẹ'},'Chụp dưới dãy đèn lồng, bán thân, mặt hướng về nguồn sáng.'),
     ]},
 };
+/* Điểm chụp nổi tiếng: [tên, nền, mặc màu gì] */
+const PLACES=[
+  {w:['đà lạt','da lat'],note:'Sáng tối 12 đến 16 độ, trưa nắng 22 độ: mặc kiểu nhiều lớp, cởi ra được.',spots:[['Hồ Xuân Hương lúc sương sớm','mặt hồ xám bạc, sương','hồng phấn, trắng ngà'],['Đồi chè Cầu Đất','xanh lá trải dài','đỏ mâm xôi, hồng dâu'],['Quảng trường Lâm Viên','nụ hoa kính vàng, xanh','lavender, trắng ngà'],['Ga Đà Lạt','tường vàng, cửa kính màu','navy, xanh baby']]},
+  {w:['sa pa','sapa','fansipan'],note:'Đêm mùa đông có thể dưới 5 độ, đường dốc trơn: giày đế bám, khăn và găng.',spots:[['Đỉnh Fansipan','mây trắng, đá xám','mâm xôi, hồng dâu'],['Bản Cát Cát','nhà gỗ, ruộng bậc thang','trắng ngà, hồng phấn'],['Nhà thờ đá','đá xám','hồng dâu, lavender']]},
+  {w:['hà giang'],note:'Ngồi xe máy nhiều giờ: quần ống suông thay váy, khoác chắn gió; có thể thuê váy H\'Mông để chụp.',spots:[['Đèo Mã Pì Lèng','núi đá xám, sông xanh ngọc','mâm xôi, hồng dâu'],['Đồi tam giác mạch','hoa hồng tím','trắng ngà, navy'],['Phố cổ Đồng Văn','tường đất, đèn lồng','navy, trắng ngà']]},
+  {w:['mộc châu'],note:'Sáng sương lạnh, trưa ấm.',spots:[['Đồi chè trái tim','xanh lá','hồng dâu, trắng ngà'],['Rừng thông Bản Áng','thông xanh, hồ','lavender, hồng phấn'],['Đồi hoa cải, hoa mận','trắng tinh','hồng dâu, navy (tránh trắng)']]},
+  {w:['hội an'],note:'Thuê áo dài và đèn lồng ngay phố cổ để chụp; tối trên sông Hoài đông người, đi sớm.',spots:[['Tường vàng phố cổ','vàng nghệ, cửa gỗ xanh','navy, xanh baby, trắng ngà'],['Sông Hoài, đèn lồng tối','ánh vàng đỏ','mâm xôi, trắng ngà'],['Rừng dừa Bảy Mẫu','xanh dừa nước','hồng phấn, trắng ngà']]},
+  {w:['huế'],note:'Mùa này mưa nhiều: ô gấp và giày không thấm. Áo dài tím Huế rất hợp da bạn.',spots:[['Đại Nội','đỏ son, vàng','trắng ngà, lavender'],['Lăng Khải Định','đá xám rêu','hồng dâu, lavender'],['Cầu Trường Tiền về đêm','đèn đổi màu','trắng ngà']]},
+  {w:['ninh bình','tràng an','tam cốc','bái đính'],note:'Đi thuyền 2 đến 3 tiếng, leo Hang Múa 500 bậc: mang giày thể thao, đổi váy sau.',spots:[['Thuyền Tràng An','núi đá vôi, nước xanh','trắng ngà, hồng phấn'],['Đỉnh Hang Múa','đá xám, lúa vàng','mâm xôi, hồng dâu'],['Chùa Bái Đính','gỗ nâu, mái ngói','lavender, trắng ngà (kín vai gối)']]},
+  {w:['hạ long','cát bà'],note:'Trên du thuyền gió mạnh, mang khoác mỏng.',spots:[['Boong du thuyền','vịnh xanh, đảo đá','hồng dâu, trắng ngà'],['Bãi biển','cát, nước xanh','mâm xôi']]},
+  {w:['phú quốc','phu quoc'],note:'Nắng gắt cả năm: mũ, kính, kem chống nắng.',spots:[['Sunset Town','tường pastel kiểu Ý','trắng ngà, hồng dâu'],['Bãi Sao','cát trắng, nước xanh ngọc','mâm xôi, hồng dâu'],['Cáp treo Hòn Thơm','biển xanh','trắng, hồng dâu']]},
+  {w:['đà nẵng','da nang','bà nà'],note:'Bà Nà trên núi lạnh hơn dưới biển 8 đến 10 độ: mang khoác.',spots:[['Cầu Vàng Bà Nà','bàn tay đá rêu, cầu vàng','trắng ngà, hồng phấn (tránh vàng)'],['Biển Mỹ Khê','cát, sóng','hồng dâu, mâm xôi'],['Làng Pháp Bà Nà','tường đá, mái nâu','navy, lavender']]},
+  {w:['nha trang'],note:'Gió biển mạnh chiều tối.',spots:[['Tháp Bà Ponagar','gạch đỏ','trắng ngà, xanh baby'],['Đảo Hòn Mun','biển xanh','hồng dâu']]},
+  {w:['seoul','hàn quốc'],note:'Thuê hanbok được vào cung miễn phí; chọn màu hồng phấn, lavender.',spots:[['Cung Gyeongbokgung','cột đỏ, mái ngói','hanbok hồng phấn, lavender'],['Làng Bukchon','mái ngói xám','navy, trắng ngà'],['Tháp Namsan','phố đèn đêm','mâm xôi']]},
+  {w:['tokyo','osaka','kyoto','nhật bản'],note:'Đền chùa nhiều bậc và sỏi: giày êm; kimono thuê theo tông pastel.',spots:[['Đền Asakusa, cổng đỏ','đỏ son','navy, trắng ngà (tránh đỏ trùng)'],['Fushimi Inari','cổng torii cam','trắng ngà, navy'],['Phố Shibuya','biển đèn','mâm xôi, hồng dâu']]},
+  {w:['bangkok'],note:'Vào cung điện phải kín vai, gối; trời 32 độ: vải linen mát.',spots:[['Grand Palace','vàng kim, ngói xanh đỏ','trắng ngà, navy'],['Wat Arun','sứ trắng','lavender, hồng dâu']]},
+  {w:['paris','châu âu'],note:'Trời đổi nhanh: măng tô và ô gấp.',spots:[['Tháp Eiffel, Trocadéro','sắt nâu, trời xám','mâm xôi, hồng dâu'],['Bảo tàng Louvre','kim tự tháp kính','navy, trắng ngà'],['Quán cà phê vỉa hè','mái hiên đỏ','trắng ngà, xanh baby']]},
+];
 function guessScene(t){t=(t||'').toLowerCase(); for(const [k,v] of Object.entries(SCENES)) if(v.words.some(w=>t.includes(w)))return k; return 'pho'}
-/* Hình minh họa bộ đồ mẫu: vẽ dáng người đơn giản, tô màu theo từng món */
-function lookSVG(pieces){
-  const get=c=>pieces.find(p=>p.cat===c), hx=p=>p?(C[p.colors[0]]?.pattern?'#B9A9D3':C[p.colors[0]]?.hex||'#ccc'):null;
-  const dr=get('dress'), tp=get('top'), bt=get('bottom'), sk=get('skirt'), ot=get('outer'), sh=get('shoes');
-  const accs=pieces.filter(p=>p.cat==='acc'), bag=get('bag');
-  const skin='#EBCBB6', hair='#3B2A26', line='rgba(36,48,77,.35)';
-  const topC=hx(dr||tp)||'#F2EFE8';
-  const len=(dr||sk)?.len||'midi', hem={goi:178,midi:205,maxi:238}[len]||205;
-  let g='';
-  // chân
-  g+=`<path d="M52 150 L50 240 M68 150 L70 240" stroke="${skin}" stroke-width="8" stroke-linecap="round"/>`;
-  // giày
-  g+=`<ellipse cx="49" cy="243" rx="8" ry="4" fill="${hx(sh)||'#888'}" stroke="${line}"/><ellipse cx="71" cy="243" rx="8" ry="4" fill="${hx(sh)||'#888'}" stroke="${line}"/>`;
-  if(sh&&sh.shapes[0]==='botcao') g+=`<path d="M45 205 h9 v38 h-9Z M66 205 h9 v38 h-9Z" fill="${hx(sh)}" stroke="${line}"/>`;
-  // thân dưới
-  if(bt){ const wide=['rong','suong','loe'].includes(bt.shapes[0]);
-    g+=`<path d="M44 100 L76 100 L${wide?84:78} 240 L${wide?63:64} 240 L60 128 L${wide?57:56} 240 L${wide?36:42} 240 Z" fill="${hx(bt)}" stroke="${line}"/>`; }
-  else if(sk||dr){ const w=(sk||dr).shapes[0]; const flare=['xoe','a','babydoll','thateo','wrap','xepl'].includes(w)?30:16;
-    g+=`<path d="M44 100 L76 100 L${60+flare} ${hem} Q60 ${hem+6} ${60-flare} ${hem} Z" fill="${hx(sk||dr)}" stroke="${line}"/>`;
-    if(w==='xepl') for(let i=-2;i<=2;i++) g+=`<path d="M${60+i*4} 104 L${60+i*10} ${hem}" stroke="${line}"/>`; }
-  // tay
-  g+=`<path d="M38 56 L30 120 M82 56 L90 120" stroke="${skin}" stroke-width="7" stroke-linecap="round"/>`;
-  // thân trên
-  g+=`<path d="M40 50 Q60 44 80 50 L84 64 L77 66 L76 102 L44 102 L43 66 L36 64 Z" fill="${topC}" stroke="${line}"/>`;
-  const neck=(dr||tp)?.shapes[0]; if(neck==='v'||neck==='somi'||neck==='wrap') g+=`<path d="M54 47 L60 62 L66 47Z" fill="${skin}"/>`; else if(neck==='vuong') g+=`<path d="M52 47 L52 56 L68 56 L68 47Z" fill="${skin}"/>`; else if(neck==='thuyen') g+=`<path d="M42 49 Q60 58 78 49 Q60 44 42 49Z" fill="${skin}"/>`;
-  const belt=accs.find(a=>a.shapes[0]==='thatlung'); if(belt||dr&&['thateo','wrap'].includes(dr.shapes[0])) g+=`<rect x="44" y="96" width="32" height="4" fill="${belt?hx(belt):topC}" stroke="${line}"/>`;
-  // áo khoác
-  if(ot){ const bot=ot.shapes[0]==='crop'?100:ot.shapes[0]==='dai'?190:130;
-    g+=`<path d="M38 52 L52 50 L55 ${bot} L34 ${bot} L32 70 Z M82 52 L68 50 L65 ${bot} L86 ${bot} L88 70 Z" fill="${hx(ot)}" stroke="${line}"/><path d="M38 56 L30 118 M82 56 L90 118" stroke="${hx(ot)}" stroke-width="9" stroke-linecap="round"/>`; }
-  // khăn
-  const scarf=accs.find(a=>a.shapes[0]==='khan'); if(scarf) g+=`<path d="M50 46 Q60 54 70 46 L70 52 Q60 60 50 52Z M64 52 L67 80 L61 80 Z" fill="${hx(scarf)}" stroke="${line}"/>`;
-  const neckl=accs.find(a=>a.shapes[0]==='daychuyen'); if(neckl) g+=`<path d="M53 48 Q60 64 67 48" fill="none" stroke="${hx(neckl)}" stroke-width="1.6"/>`;
-  // đầu
-  g+=`<rect x="56" y="36" width="8" height="10" fill="${skin}"/><ellipse cx="60" cy="27" rx="11" ry="13" fill="${skin}"/><path d="M48 28 Q48 11 60 12 Q73 11 72 30 Q70 20 60 19 Q52 20 50 33Z" fill="${hair}"/>`;
-  const ear=accs.find(a=>a.shapes[0]==='khuyentai'); if(ear) g+=`<circle cx="49" cy="33" r="2" fill="${hx(ear)}"/><circle cx="71" cy="33" r="2" fill="${hx(ear)}"/>`;
-  const hat=accs.find(a=>a.shapes[0]==='mu'); if(hat) g+=`<ellipse cx="60" cy="16" rx="${pieces.some(p=>p.name.includes('rộng vành'))?24:14}" ry="5" fill="${hx(hat)}" stroke="${line}"/><path d="M50 16 Q60 2 70 16Z" fill="${hx(hat)}" stroke="${line}"/>`;
-  const gl=accs.find(a=>a.shapes[0]==='kinh'); if(gl) g+=`<path d="M52 27 h7 M61 27 h7" stroke="#24304D" stroke-width="3" stroke-linecap="round"/>`;
-  if(bag) g+=`<path d="M82 52 L95 112" stroke="${hx(bag)}" stroke-width="1.5"/><rect x="88" y="110" width="16" height="12" rx="3" fill="${hx(bag)}" stroke="${line}"/>`;
-  return `<svg viewBox="0 0 120 252" aria-hidden="true">${g}</svg>`;
+function findPlace(t){t=(t||'').toLowerCase(); return PLACES.find(p=>p.w.some(w=>t.includes(w)))}
+
+/* Thêm lớp theo nhiệt độ từng ngày */
+function layerDay(look,d){
+  const lo=d?d.tmin:20, hi=d?d.tmax:26, rain=d?d.rain:0;
+  let ps=look.pieces.map(p=>({...p}));
+  const hasOuter=ps.some(p=>p.cat==='outer'), legs=ps.some(p=>p.cat==='skirt'||p.cat==='dress'||p.cat==='rent');
+  if(lo>=24&&hi>=29) ps=ps.filter(p=>p.cat!=='outer');
+  if(!hasOuter&&lo<23){ ps.push(lo<12?P('outer',['dai'],['navy','mam-xoi','xam-nhat'],'Măng tô dạ hoặc áo phao dáng dài','giữ ấm, che hông'):lo<18?P('outer',['dai','crop'],['xam-nhat','trang-nga','navy'],'Áo khoác dạ mỏng hoặc blazer dài'):P('outer',['crop'],['trang-nga','hong-phan','lavender'],'Cardigan mỏng cho buổi tối')) }
+  const inner=[]; // lớp trong, đồ giữ ấm
+  if(lo<16) inner.push(P('layer',['x'],['trang-nga','be-hong'],lo<10?'Áo giữ nhiệt dày cổ tim mặc trong cùng':'Áo giữ nhiệt mỏng cổ tim mặc trong cùng','ấm mà không lộ, cổ tim không phá cổ áo ngoài'));
+  if(legs&&lo<20) inner.push(P('layer',['x'],['be-hong','den'],lo<10?'Quần tất lót nỉ 120D màu da hoặc đen':lo<15?'Quần tất 80D màu da':'Quần tất mỏng 40D màu da','ấm chân, chân thon hơn'));
+  if(!legs&&lo<10) inner.push(P('layer',['x'],['den'],'Quần giữ nhiệt mặc trong'));
+  const warm=[];
+  if(lo<14&&!ps.some(p=>p.cat==='acc'&&p.shapes[0]==='khan')) warm.push(P('acc',['khan'],['lavender','hong-phan','trang-nga'],'Khăn len quàng cổ'));
+  if(lo<8) warm.push(P('layer',['x'],['trang-nga','hong-phan'],'Mũ len, găng tay, tất len'));
+  if(rain>=50) warm.push(P('layer',['x'],['navy','trang-nga'],'Ô gấp gọn hoặc áo khoác chống nước'));
+  if(hi>=30) warm.push(P('layer',['x'],['trang-nga'],'Kem chống nắng, kính râm, quạt cầm tay'));
+  const tips=[];
+  if(hi-lo>=8) tips.push(`Chênh ${hi-lo} độ trong ngày: mặc nhiều lớp, trưa cởi áo khoác cầm tay.`);
+  if(rain>=50) tips.push(`Khả năng mưa ${rain}%: tránh váy dài chạm đất và giày vải sáng màu.`);
+  return {ps,inner,warm,tips};
 }
-/* So bộ mẫu với tủ đồ: món nào đã có, món nào tạm thay, món nào nên mua */
+const ROLE={layer:'Mặc trong / giữ ấm',top:'Áo',dress:'Váy',rent:'Thuê tại chỗ',bottom:'Quần',skirt:'Chân váy',outer:'Lớp ngoài',shoes:'Giày',bag:'Túi',acc:'Phụ kiện'};
+const ROLE_ORDER=['layer','top','dress','rent','bottom','skirt','outer','shoes','bag','acc'];
+
+/* Hình minh họa: nền cảnh, dáng người, tóc, từng lớp đồ */
+function lookSVG(pieces,sc,hair){
+  const get=c=>pieces.find(p=>p.cat===c), hx=p=>p?(C[p.colors[0]]?.pattern?'#B9A9D3':C[p.colors[0]]?.hex||'#ccc'):null;
+  const dr=get('dress')||get('rent'), tp=get('top'), bt=get('bottom'), sk=get('skirt'), ot=get('outer'), sh=get('shoes'), bag=get('bag');
+  const accs=pieces.filter(p=>p.cat==='acc'||p.cat==='layer'), tights=pieces.find(p=>p.cat==='layer'&&/quần tất/i.test(p.name));
+  const skin='#EECDB8', hairC='#3B2A26', line='rgba(36,48,77,.3)', bg=(sc&&sc.bg)||{sky:'#EEE',ground:'#DDD'};
+  const topC=hx(dr||tp)||'#F2EFE8';
+  const len=(dr&&!/dài|maxi|áo dài/i.test(dr.name))?'midi':dr?'maxi':sk?(/dài|maxi/i.test(sk.name)?'maxi':'midi'):'midi';
+  const hem=len==='maxi'?236:206;
+  let g=`<defs><linearGradient id="sk${sc?.deco||''}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${bg.sky}"/><stop offset="1" stop-color="#fff" stop-opacity=".6"/></linearGradient></defs>`;
+  g+=`<rect width="120" height="252" fill="url(#sk${sc?.deco||''})"/>`;
+  const dc=sc?.bg?.deco;
+  if(dc==='sea') g+=`<rect y="150" width="120" height="40" fill="#5FA9CB"/><path d="M0 160 q15 -4 30 0 t30 0 t30 0 t30 0" stroke="#fff" fill="none" opacity=".7"/>`;
+  if(dc==='pine') g+=[8,26,96,112].map(x=>`<path d="M${x} 190 l-10 0 l10 -46 l10 46Z" fill="#4C7A5C"/>`).join('')+`<path d="M0 160 Q30 130 60 150 T120 140 V200 H0Z" fill="#8DB59A" opacity=".8"/>`;
+  if(dc==='lantern') g+=`<rect width="120" height="200" fill="#EBCB7E" opacity=".7"/>`+[14,104].map(x=>`<line x1="${x}" y1="0" x2="${x}" y2="20" stroke="#7A4E2D"/><ellipse cx="${x}" cy="30" rx="8" ry="11" fill="#C64F4F"/>`).join('');
+  if(dc==='field') g+=`<path d="M0 150 Q60 140 120 150 V252 H0Z" fill="#D9C35E"/>`+[0,1,2,3].map(i=>`<path d="M0 ${165+i*18} Q60 ${157+i*18} 120 ${165+i*18}" stroke="#BFA445" fill="none"/>`).join('');
+  if(dc==='roof') g+=`<path d="M-5 70 Q60 40 125 70 L110 80 H10Z" fill="#7A3B2A"/><rect x="10" y="80" width="100" height="120" fill="#B5683F" opacity=".5"/><rect x="18" y="80" width="6" height="120" fill="#8C3B2A"/><rect x="96" y="80" width="6" height="120" fill="#8C3B2A"/>`;
+  if(dc==='city') g+=`<rect x="0" y="60" width="28" height="150" fill="#B8B2AC"/><rect x="92" y="40" width="28" height="170" fill="#C4BEB7"/>`+[70,90,110,130].map(y=>`<rect x="6" y="${y}" width="6" height="9" fill="#E9E4DD"/><rect x="100" y="${y}" width="6" height="9" fill="#E9E4DD"/>`).join('');
+  if(dc==='snow') g+=`<path d="M0 170 Q40 150 80 165 T120 160 V252 H0Z" fill="#fff"/>`+[[15,30],[40,70],[100,40],[85,100],[20,120],[105,130]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="1.8" fill="#fff"/>`).join('');
+  g+=`<rect y="${dc==='sea'?190:200}" width="120" height="60" fill="${bg.ground}" opacity="${dc==='snow'?0:.85}"/>`;
+  // tóc dài phía sau
+  if(hair&&(hair.k==='xoa'||hair.k==='tet')) g+=`<path d="M47 26 Q44 60 50 74 L70 74 Q76 60 73 26Z" fill="${hairC}"/>`;
+  // chân + quần tất
+  const legC=tights?(/đen/.test(tights.name)?'#3A3A40':'#D9B39C'):skin;
+  g+=`<path d="M53 150 L51 240 M67 150 L69 240" stroke="${legC}" stroke-width="7.5" stroke-linecap="round"/>`;
+  const shC=hx(sh)||'#777';
+  if(sh&&sh.shapes[0]==='botcao') g+=`<path d="M46.5 200 h9 l.5 42 h-11Z M64 200 h9 l1 42 h-11Z" fill="${shC}" stroke="${line}"/>`;
+  g+=`<path d="M43 242 q7 -5 14 0 v3 h-14Z M63 242 q7 -5 14 0 v3 h-14Z" fill="${shC}" stroke="${line}"/>`;
+  if(bt){ const wide=['rong','suong','loe'].includes(bt.shapes[0]);
+    g+=`<path d="M45 100 L75 100 L${wide?84:78} 241 L${wide?63:64} 241 L60 128 L${wide?57:56} 241 L${wide?36:42} 241 Z" fill="${hx(bt)}" stroke="${line}"/><path d="M60 128 V104" stroke="${line}"/>`; }
+  else if(sk||dr){ const w=(sk||dr).shapes[0]; const fl=['xoe','a','babydoll','thateo','wrap','xepl'].includes(w)?26:15;
+    g+=`<path d="M45 100 L75 100 Q${66+fl} ${hem-40} ${60+fl} ${hem} Q60 ${hem+5} ${60-fl} ${hem} Q${54-fl} ${hem-40} 45 100Z" fill="${hx(sk||dr)}" stroke="${line}"/>`;
+    if(w==='xepl') for(let i=-2;i<=2;i++) g+=`<path d="M${60+i*4} 104 L${60+i*9} ${hem}" stroke="${line}"/>`;
+    if(w==='wrap') g+=`<path d="M70 100 Q64 150 ${60-fl+6} ${hem}" stroke="${line}" fill="none"/>`; }
+  // tay áo
+  const longSl=ot||/dài tay|len|sơ mi|giữ nhiệt/i.test((dr||tp||{}).name||'');
+  const slC=topC;
+  g+=`<path d="M40 56 L31 120 M80 56 L89 120" stroke="${skin}" stroke-width="6.5" stroke-linecap="round"/>`;
+  g+=`<path d="M40 56 L${longSl?32:37} ${longSl?116:76} M80 56 L${longSl?88:83} ${longSl?116:76}" stroke="${slC}" stroke-width="9" stroke-linecap="round"/>`;
+  // thân áo
+  g+=`<path d="M41 50 Q60 45 79 50 L80 64 L76 102 L44 102 L40 64 Z" fill="${topC}" stroke="${line}"/>`;
+  if(tp&&bt||tp&&sk) g+=`<path d="M44 100 H76" stroke="${line}"/>`;
+  const neck=(dr||tp)?.shapes[0];
+  if(neck==='v'||neck==='somi'||neck==='wrap') g+=`<path d="M54 47.5 L60 63 L66 47.5Z" fill="${skin}"/>`; else if(neck==='vuong') g+=`<path d="M52 48 L52 57 L68 57 L68 48Z" fill="${skin}"/>`; else if(neck==='thuyen') g+=`<path d="M43 50 Q60 59 77 50 Q60 45 43 50Z" fill="${skin}"/>`; else if(neck==='lo') g+=`<rect x="54" y="40" width="12" height="9" rx="3" fill="${topC}" stroke="${line}"/>`; else g+=`<path d="M54 47.5 Q60 54 66 47.5Z" fill="${skin}"/>`;
+  if(dr&&dr.cat==='dress'&&/áo dài/i.test(dr.name)) g+=`<path d="M45 100 L44 ${hem-4} L54 ${hem-4} L56 104 M75 100 L76 ${hem-4} L66 ${hem-4} L64 104" fill="${topC}" stroke="${line}"/>`;
+  const belt=pieces.find(p=>p.cat==='acc'&&p.shapes[0]==='thatlung'); if(belt||dr&&['thateo','wrap','babydoll'].includes(dr.shapes[0])) g+=`<rect x="45" y="${dr&&dr.shapes[0]==='babydoll'?70:96}" width="30" height="3.5" rx="1" fill="${belt?hx(belt):topC}" stroke="${line}"/>`;
+  if(ot){ const bot=ot.shapes[0]==='crop'?102:ot.shapes[0]==='dai'?196:132, oc=hx(ot);
+    g+=`<path d="M40 52 L53 49 L56 ${bot} L35 ${bot} Q33 90 34 66 Z M80 52 L67 49 L64 ${bot} L85 ${bot} Q87 90 86 66 Z" fill="${oc}" stroke="${line}"/><path d="M53 49 L58 62 M67 49 L62 62" stroke="${line}"/><path d="M40 56 L31 116 M80 56 L89 116" stroke="${oc}" stroke-width="10" stroke-linecap="round"/>`; }
+  const scarf=pieces.find(p=>p.cat==='acc'&&p.shapes[0]==='khan'); if(scarf) g+=`<path d="M49 45 Q60 54 71 45 L72 53 Q60 62 48 53Z M63 53 L67 84 L60 84 Z" fill="${hx(scarf)}" stroke="${line}"/>`;
+  const nl=pieces.find(p=>p.cat==='acc'&&p.shapes[0]==='daychuyen'); if(nl) g+=`<path d="M54 48 Q60 62 66 48" fill="none" stroke="${hx(nl)}" stroke-width="1.5"/><circle cx="60" cy="58" r="1.6" fill="${hx(nl)}"/>`;
+  // đầu, tóc
+  g+=`<rect x="56.5" y="36" width="7" height="11" fill="${skin}"/><ellipse cx="60" cy="27" rx="10.5" ry="12.5" fill="${skin}"/>`;
+  g+=`<path d="M49 30 Q48 12 60 13 Q72 12 71 30 Q69 20 60 20 Q52 20 51 32Z" fill="${hairC}"/>`;
+  if(hair){ if(hair.k==='buicao') g+=`<circle cx="60" cy="10" r="6" fill="${hairC}"/>`; if(hair.k==='buithap') g+=`<circle cx="69" cy="34" r="5" fill="${hairC}"/>`; if(hair.k==='duoi') g+=`<path d="M70 18 Q80 30 74 52 Q72 40 68 24Z" fill="${hairC}"/>`; if(hair.k==='tet') g+=`<path d="M50 34 Q46 50 52 66" stroke="${hairC}" stroke-width="5" fill="none" stroke-dasharray="3 1"/>`; }
+  g+=`<circle cx="56" cy="28" r=".9" fill="#3B2A26"/><circle cx="64" cy="28" r=".9" fill="#3B2A26"/><path d="M57.5 33 Q60 34.5 62.5 33" stroke="#B4466F" stroke-width="1" fill="none"/>`;
+  const ear=pieces.find(p=>p.cat==='acc'&&p.shapes[0]==='khuyentai'); if(ear) g+=`<circle cx="49.5" cy="32" r="1.8" fill="${hx(ear)}"/><circle cx="70.5" cy="32" r="1.8" fill="${hx(ear)}"/>`;
+  const hat=pieces.find(p=>p.cat==='acc'&&p.shapes[0]==='mu')||pieces.find(p=>p.cat==='layer'&&/mũ len/i.test(p.name));
+  if(hat){ const hc=hx(hat); if(/rộng vành|cói/i.test(hat.name)) g+=`<ellipse cx="60" cy="17" rx="24" ry="4.5" fill="${hc}" stroke="${line}"/><path d="M51 17 Q51 6 60 6 Q69 6 69 17Z" fill="${hc}" stroke="${line}"/>`;
+    else if(/nồi/i.test(hat.name)) g+=`<ellipse cx="58" cy="15" rx="14" ry="5" fill="${hc}" stroke="${line}"/>`; else g+=`<path d="M49 20 Q49 4 60 4 Q71 4 71 20Z" fill="${hc}" stroke="${line}"/><circle cx="60" cy="4" r="3" fill="${hc}"/>`; }
+  const gl=pieces.find(p=>p.cat==='acc'&&p.shapes[0]==='kinh'); if(gl) g+=`<path d="M52 27.5 h6.5 M61.5 27.5 h6.5" stroke="#24304D" stroke-width="3" stroke-linecap="round"/>`;
+  if(bag) g+=`<path d="M79 52 L96 110" stroke="${hx(bag)}" stroke-width="1.4"/><rect x="89" y="108" width="15" height="12" rx="3" fill="${hx(bag)}" stroke="${line}"/>`;
+  return `<svg viewBox="0 0 120 252" role="img" aria-label="Hình minh họa bộ đồ">${g}</svg>`;
+}
+/* So với tủ đồ */
 function matchPiece(p){
+  if(p.cat==='layer'||p.cat==='rent')return {k:p.cat==='rent'?'thue':'mua'};
   const pool=S.items.filter(i=>i.cat===p.cat&&(p.cat!=='acc'||p.shapes.includes(i.shape)));
   let best=null,bs=-1;
   for(const i of pool){ let s=0; if(p.colors.includes(i.color))s+=3; else if(C[i.color]&&p.colors.some(c=>C[c].g===C[i.color].g&&C[c].d===C[i.color].d))s+=2; else if(C[i.color]&&C[i.color].g!=='tranh')s+=0.5;
     if(p.shapes.includes(i.shape))s+=2; if(s>bs){bs=s;best=i} }
   if(best&&bs>=4)return {k:'co',it:best};
   if(best&&bs>=2.5)return {k:'tam',it:best};
-  return {k:'mua',it:best&&bs>=2?best:null};
-}
-function adaptLook(L,kind){
-  let ps=L.pieces.slice();
-  if(kind==='nong') ps=ps.filter(p=>p.cat!=='outer');
-  if(kind==='lanh'&&!ps.some(p=>p.cat==='outer')) ps.splice(1,0,{cat:'outer',shapes:['dai'],colors:['xam-nhat','navy','trang-nga'],name:'Áo khoác dáng dài (trời lạnh)'});
-  return ps;
+  return {k:'mua'};
 }
 function colorNames(p){return p.colors.slice(0,3).map(c=>C[c].name.toLowerCase()).join(', ')}
-function lookHTML(L,ps,i){
-  const rows=ps.map(p=>{const m=matchPiece(p);
-    if(m.k==='co') return `<li class="lk-co"><span class="lk-th">${thumbHTML(m.it)}</span><span><b>Tủ đã có:</b> ${esc(m.it.name)}<br><small>${esc(p.name)}</small></span></li>`;
-    if(m.k==='tam') return `<li class="lk-tam"><span class="lk-th">${thumbHTML(m.it)}</span><span><b>Tạm dùng:</b> ${esc(m.it.name)}<br><small>Đẹp nhất là: ${esc(p.name)} (${colorNames(p)})</small></span></li>`;
-    return `<li class="lk-mua"><span class="lk-th lk-buy">+</span><span><b>Nên mua:</b> ${esc(p.name)}<br><small>Màu ${colorNames(p)}${p.why?'. '+esc(p.why):''}</small></span></li>`}).join('');
-  return `<article class="outfit${i===0?' hero':''}"><div class="look"><div class="look-pic">${lookSVG(ps)}</div><div style="flex:1;min-width:0"><div class="label">Bộ mẫu ${i+1}</div><h3 class="look-name">${esc(L.name)}</h3><ul class="look-list">${rows}</ul></div></div></article>`;
+function pieceRow(p){
+  const m=matchPiece(p), why=p.why?`. ${esc(p.why[0].toUpperCase()+p.why.slice(1))}`:'';
+  if(m.k==='co') return `<li class="lk-co"><span class="lk-th">${thumbHTML(m.it)}</span><span><b>Tủ đã có:</b> ${esc(m.it.name)}<br><small>${esc(p.name)}${why}</small></span></li>`;
+  if(m.k==='tam') return `<li class="lk-tam"><span class="lk-th">${thumbHTML(m.it)}</span><span><b>Tạm dùng:</b> ${esc(m.it.name)}<br><small>Đẹp nhất là ${esc(p.name.toLowerCase())}, màu ${colorNames(p)}${why}</small></span></li>`;
+  if(m.k==='thue') return `<li class="lk-tam"><span class="lk-th lk-buy" style="background:var(--warn-soft);color:var(--warn)">↻</span><span><b>Thuê:</b> ${esc(p.name)}<br><small>Màu ${colorNames(p)}${why}</small></span></li>`;
+  return `<li class="lk-mua"><span class="lk-th lk-buy">+</span><span><b>${p.cat==='layer'?'Chuẩn bị':'Nên mua'}:</b> ${esc(p.name)}<br><small>Màu ${colorNames(p)}${why}</small></span></li>`;
 }
-function shoppingList(looksPs){
+function dayHTML(x,i){
+  const {day,look,lay,sc}=x; const all=[...lay.inner,...lay.ps,...lay.warm];
+  const groups=ROLE_ORDER.map(r=>[r,all.filter(p=>p.cat===r)]).filter(([,a])=>a.length);
+  const pl=TRIP.result.place, spot=pl&&pl.spots[i%pl.spots.length];
+  const q=encodeURIComponent(`outfit ${TRIP.result.where.split(',')[0]} ${look.name}`);
+  const wx=day?`${day.label} · ${day.tmin}–${day.tmax}°${day.rain!=null?` · mưa ${day.rain}%`:''}`:'Chưa có dự báo, app ước theo khí hậu';
+  return `<article class="outfit day${i===0?' hero':''}">
+    <div class="day-head"><div class="label">Ngày ${i+1} · ${esc(look.act)}</div><div class="day-wx">${esc(wx)}</div></div>
+    <div class="look"><div class="look-pic">${lookSVG(all,sc,look.hair)}</div>
+      <div style="flex:1;min-width:0"><h3 class="look-name">${esc(look.name)}</h3>
+      ${lay.tips.map(t=>`<div class="hint">${esc(t)}</div>`).join('')}</div></div>
+    ${groups.map(([r,a])=>`<div class="lay"><div class="label">${ROLE[r]}</div><ul class="look-list">${a.map(pieceRow).join('')}</ul></div>`).join('')}
+    <div class="lay-notes"><div><b>Tóc:</b> ${esc(look.hair.t)}</div><div><b>Chụp ảnh:</b> ${esc(look.pose)}</div>${spot?`<div><b>Điểm chụp hợp bộ này:</b> ${esc(spot[0])} (nền ${esc(spot[1])}, mặc ${esc(spot[2])})</div>`:''}</div>
+    <a class="btn ghost small" style="text-align:center;text-decoration:none" href="https://www.pinterest.com/search/pins/?q=${q}" target="_blank" rel="noopener">Xem ảnh thật kiểu này trên Pinterest</a>
+  </article>`;
+}
+function shoppingList(days){
   const m=new Map();
-  looksPs.forEach(ps=>ps.forEach(p=>{const r=matchPiece(p); if(r.k==='co')return; const key=p.cat+'|'+p.shapes[0]; const o=m.get(key)||{p,n:0,tam:r.k==='tam'}; o.n++; if(r.k==='mua')o.tam=false; m.set(key,o)}));
+  days.forEach(x=>[...x.lay.inner,...x.lay.ps,...x.lay.warm].forEach(p=>{const r=matchPiece(p); if(r.k==='co'||r.k==='thue')return; const key=p.cat==='layer'?p.name:p.cat+'|'+p.shapes[0]; const o=m.get(key)||{p,n:0,tam:r.k==='tam'}; o.n++; if(r.k==='mua')o.tam=false; m.set(key,o)}));
   return [...m.values()].sort((a,b)=>(a.tam-b.tam)||(b.n-a.n));
 }
-const TRIP={place:'',days:3,scene:null,result:null,loading:false};
+const TRIP={place:'',days:3,scene:null,start:'',result:null,loading:false,showWard:false};
+function isoDay(d){return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
 async function planTrip(){
   TRIP.loading=true; TRIP.result=null; render();
   const scene=TRIP.scene||guessScene(TRIP.place); const sc=SCENES[scene];
-  let wx=null, where=TRIP.place;
+  const start=TRIP.start||isoDay(new Date()); const sd=new Date(start+'T00:00:00'), ed=new Date(sd.getTime()+(TRIP.days-1)*864e5);
+  let days=[], where=TRIP.place;
   try{
     const g=await (await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&language=vi&name='+encodeURIComponent(TRIP.place))).json();
     const loc=g.results&&g.results[0];
     if(loc){ where=[loc.name,loc.country].filter(Boolean).join(', ');
-      const f=await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=${Math.min(16,TRIP.days)}`)).json();
-      const d=f.daily; const avg=a=>Math.round(a.reduce((x,y)=>x+y,0)/a.length);
-      wx={tmin:Math.min(...d.temperature_2m_min).toFixed?Math.round(Math.min(...d.temperature_2m_min)):null,tmax:Math.round(Math.max(...d.temperature_2m_max)),rain:avg(d.precipitation_probability_max.map(x=>x??0)),day:avg(d.temperature_2m_max)} }
+      const lim=new Date(Date.now()+15*864e5);
+      if(sd<=lim){ const end=ed>lim?lim:ed;
+        const f=await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&start_date=${start}&end_date=${isoDay(end)}`)).json();
+        const d=f.daily; if(d) days=d.temperature_2m_max.map((x,i)=>({tmax:Math.round(x),tmin:Math.round(d.temperature_2m_min[i]),rain:d.precipitation_probability_max?.[i]??null})); } }
   }catch{}
-  const kind=wx?(wx.day>=28?'nong':wx.day>=20?'mat':'lanh'):(scene==='tuyet'?'lanh':scene==='nui'?'lanh':scene==='bien'?'nong':'mat');
-  // chấm thêm điểm "lên ảnh đẹp" theo cảnh
-  const keep={w:S.weather,occ:S.occ,pin:S.pin,wm:S.weatherManual};
+  // ngày không có dự báo: ước theo ngày có dự báo gần nhất hoặc theo loại cảnh
+  const est=days.length?days[days.length-1]:{tmax:scene==='tuyet'?2:scene==='nui'?20:scene==='au'?14:30,tmin:scene==='tuyet'?-4:scene==='nui'?12:scene==='au'?7:24,rain:null,est:true};
+  const plan=[];
+  for(let i=0;i<TRIP.days;i++){ const dd=new Date(sd.getTime()+i*864e5); const day={...(days[i]||est)}; day.label=dd.toLocaleDateString('vi-VN',{weekday:'short',day:'numeric',month:'numeric'})+(days[i]?'':' (ước tính)');
+    const look=sc.looks[i%sc.looks.length]; plan.push({day,look,sc,lay:layerDay(look,day)}) }
+  // phần ghép từ tủ (giữ như cũ, để tham khảo)
+  const avg=days.length?Math.round(days.reduce((a,d)=>a+d.tmax,0)/days.length):est.tmax;
+  const kind=avg>=28?'nong':avg>=20?'mat':'lanh';
+  const keep={w:S.weather,occ:S.occ,pin:S.pin};
   TRIP_BONUS=main=>{const r={s:0,pos:[],neg:[]}; for(const i of main){ if(!['top','dress','outer'].includes(i.cat)&&main.length>1)continue;
     if(sc.pop.includes(i.color)){r.s+=8;r.pos.push(`${C[i.color].name} nổi bật trên nền ${sc.name.toLowerCase()}, lên ảnh đẹp`)}
     else if(sc.avoid.includes(i.color)){r.s-=6;r.neg.push(`${C[i.color].name} dễ chìm vào nền ${sc.name.toLowerCase()}`)} } return r};
-  let out=[];
-  try{ S.weather=kind; S.occ='choi'; S.pin=null; out=buildOutfits().out }
-  finally{ S.weather=keep.w; S.occ=keep.occ; S.pin=keep.pin; TRIP_BONUS=null }
-  // mỗi ngày một bộ, hạn chế lặp áo
-  const days=[], usedTop=new Map();
-  for(const c of out){ if(days.length>=TRIP.days)break; const t=c.main[0].id; if((usedTop.get(t)||0)>=Math.ceil(TRIP.days/Math.max(1,new Set(out.map(o=>o.main[0].id)).size)))continue; usedTop.set(t,(usedTop.get(t)||0)+1); days.push(c) }
-  for(const c of out){ if(days.length>=TRIP.days)break; if(!days.includes(c))days.push(c) }
-  const pack=[...new Map(days.flatMap(c=>[...c.main,...c.extra]).map(i=>[i.id,i])).values()];
-  const extra=[...sc.bring]; if(wx&&wx.rain>=40)extra.unshift('Áo mưa gọn hoặc ô gấp (khả năng mưa '+wx.rain+'%)'); if(wx&&wx.tmin<=15&&!extra.some(x=>x.includes('khoác')))extra.unshift('Áo khoác ấm, tối xuống '+wx.tmin+'°');
-  const looks=sc.looks.map(L=>({L,ps:adaptLook(L,kind)}));
-  TRIP.result={where,scene,wx,kind,days,pack,extra,looks}; TRIP.loading=false; render();
+  let ward=[]; try{ S.weather=kind; S.occ='choi'; S.pin=null; ward=buildOutfits().out.slice(0,3) } finally{ S.weather=keep.w; S.occ=keep.occ; S.pin=keep.pin; TRIP_BONUS=null }
+  TRIP.result={where,scene,plan,ward,place:findPlace(TRIP.place+' '+where),hasWx:days.length>0}; TRIP.loading=false; TRIP.showWard=false; render();
 }
 function viewTravel(){
   const sc=TRIP.scene||guessScene(TRIP.place); const R=TRIP.result;
   let html=`<section><div class="empty"><h2>Phối đồ du lịch</h2>
-    <p>Gõ nơi bạn sắp đi. App xem thời tiết ở đó, đưa ra bộ mẫu đẹp nhất hợp vùng đó, chỉ món nào tủ đã có và món nào nên mua thêm.</p>
-    <div class="field"><label for="f-place">Đi đâu?</label><input id="f-place" type="text" placeholder="Ví dụ: Đà Lạt, Phú Quốc, Sa Pa, Seoul" value="${esc(TRIP.place)}" autocomplete="off"></div>
+    <p>Gõ nơi sắp đi và ngày đi. App xem thời tiết từng ngày ở đó, lên cho mỗi ngày một bộ vừa đẹp vừa ấm, ghi rõ từng lớp, giày, phụ kiện, tóc, chỗ chụp; món nào tủ đã có, món nào nên mua.</p>
+    <div class="field"><label for="f-place">Đi đâu?</label><input id="f-place" type="text" placeholder="Ví dụ: Đà Lạt, Sa Pa, Hội An, Seoul" value="${esc(TRIP.place)}" autocomplete="off"></div>
+    <div class="field"><label for="f-date">Ngày đi</label><input id="f-date" type="date" value="${esc(TRIP.start||isoDay(new Date()))}"></div>
     <div class="field"><span class="label">Mấy ngày?</span><div class="opts">${[2,3,4,5,7].map(n=>`<button type="button" class="chip" data-days="${n}" aria-pressed="${TRIP.days===n}">${n} ngày</button>`).join('')}</div></div>
-    <div class="field"><span class="label">Cảnh chụp chính${TRIP.place&&!TRIP.scene?' (app tự đoán)':''}</span><div class="opts">${Object.entries(SCENES).map(([k,v])=>`<button type="button" class="chip" data-scene="${k}" aria-pressed="${sc===k}">${v.name}</button>`).join('')}</div></div>
-    <div class="row"><button class="btn" data-act="trip" ${TRIP.loading?'disabled':''}>${TRIP.loading?'Đang tìm…':'Gợi ý đồ mang theo'}</button></div></div>`;
+    <div class="field"><span class="label">Loại cảnh${TRIP.place&&!TRIP.scene?' (app tự đoán)':''}</span><div class="opts">${Object.entries(SCENES).map(([k,v])=>`<button type="button" class="chip" data-scene="${k}" aria-pressed="${sc===k}">${v.name}</button>`).join('')}</div></div>
+    <div class="row"><button class="btn" data-act="trip" ${TRIP.loading?'disabled':''}>${TRIP.loading?'Đang xem thời tiết…':'Lên đồ từng ngày'}</button></div></div>`;
   if(R){
-    const s2=SCENES[R.scene];
-    html+=`<div class="wx"><div class="wx-head">${esc(R.where)}${R.wx?` · ${R.wx.tmin}–${R.wx.tmax}° <span class="wx-sub">khả năng mưa khoảng ${R.wx.rain}% trong ${TRIP.days} ngày tới</span>`:' <span class="wx-sub">chưa lấy được thời tiết, app ước lượng theo loại cảnh</span>'}</div><ul><li>${esc(s2.tip)}</li></ul></div>`;
-    html+=`<h2 class="sec-title">Bộ mẫu đẹp nhất cho ${esc(s2.name.toLowerCase())}</h2><div class="hint">Hình minh họa kiểu mặc chuẩn. Bên cạnh là món tủ bạn đã có, món tạm dùng được, và món nên mua thêm.</div>`;
-    html+=R.looks.map((x,i)=>lookHTML(x.L,x.ps,i)).join('');
-    const buy=shoppingList(R.looks.map(x=>x.ps));
-    html+=buy.length?`<div class="tips"><div class="label">Nên mua thêm cho chuyến này</div><ul>${buy.map(o=>`<li><b>${esc(o.p.name)}</b>, màu ${colorNames(o.p)}${o.n>1?` <small>(dùng được cho ${o.n} bộ)</small>`:''}${o.tam?' <small>(không gấp, đang có món tạm dùng)</small>':''}</li>`).join('')}</ul></div>`:`<div class="tips">Tủ của bạn đã đủ đồ cho các bộ mẫu này, không cần mua thêm.</div>`;
-    html+=`<h2 class="sec-title">Ghép từ đồ trong tủ</h2>`;
-    if(!R.days.length) html+=`<div class="empty"><p>${missingText({tops:S.items.filter(i=>i.cat==='top').length,lows:S.items.filter(i=>i.cat==='bottom'||i.cat==='skirt').length,dresses:S.items.filter(i=>i.cat==='dress').length})}</p></div>`;
-    html+=R.days.map((c,i)=>outfitHTML(c,i).replace(i===0?'Gợi ý tốt nhất':'Bộ số '+(i+1),'Ngày '+(i+1))).join('');
-    if(R.days.length) html+=`<div class="tips"><div class="label">Danh sách mang theo</div><ul>${R.pack.map(i=>`<li>${esc(i.name)}</li>`).join('')}${R.extra.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`;
+    const s2=SCENES[R.scene], pl=R.place;
+    html+=`<div class="wx"><div class="wx-head">${esc(R.where)} <span class="wx-sub">${R.hasWx?'theo dự báo từng ngày':'chưa có dự báo cho ngày này, app ước theo khí hậu'}</span></div><ul>
+      <li><b>Màu lên ảnh:</b> ${esc(s2.tip)}</li><li><b>Giày theo địa hình:</b> ${esc(s2.shoes)}</li>${pl?`<li><b>Lưu ý riêng:</b> ${esc(pl.note)}</li>`:''}</ul></div>`;
+    if(pl) html+=`<div class="tips"><div class="label">Điểm chụp đẹp và nên mặc màu gì</div><ul>${pl.spots.map(s=>`<li><b>${esc(s[0])}</b>: nền ${esc(s[1])}, mặc ${esc(s[2])}</li>`).join('')}</ul></div>`;
+    html+=R.plan.map(dayHTML).join('');
+    const buy=shoppingList(R.plan), now=buy.filter(o=>!o.tam), later=buy.filter(o=>o.tam);
+    const li=o=>`<li><b>${esc(o.p.name)}</b>, màu ${colorNames(o.p)}${o.n>1?` <small>(dùng cho ${o.n} ngày)</small>`:''}${o.p.why?`<br><small>${esc(o.p.why)}</small>`:''}</li>`;
+    html+=`<div class="tips"><div class="label">Danh sách cần mua, chuẩn bị</div>${now.length?`<div style="margin-top:6px"><b>Cần có</b></div><ul>${now.map(li).join('')}</ul>`:''}${later.length?`<div style="margin-top:8px"><b>Có thì đẹp hơn</b> <small>(đang có món tạm dùng)</small></div><ul>${later.map(li).join('')}</ul>`:''}${!buy.length?'<p>Tủ của bạn đã đủ đồ cho chuyến này.</p>':''}</div>`;
+    const pack=[...new Map(R.plan.flatMap(x=>[...x.lay.inner,...x.lay.ps,...x.lay.warm]).map(p=>{const m=matchPiece(p);return m.it?[m.it.id,m.it.name]:null}).filter(Boolean)).values()];
+    if(pack.length) html+=`<div class="tips"><div class="label">Đồ trong tủ cần xếp vào vali</div><ul>${pack.map(n=>`<li>${esc(n)}</li>`).join('')}</ul></div>`;
+    if(R.ward.length) html+= TRIP.showWard? `<h2 class="sec-title">Ghép chỉ từ đồ trong tủ</h2>`+R.ward.map((c,i)=>outfitHTML(c,i).replace(i===0?'Gợi ý tốt nhất':'Bộ số '+(i+1),'Bộ '+(i+1))).join('') : `<button class="btn ghost" data-act="trip-ward">Xem thêm bộ ghép chỉ từ đồ trong tủ</button>`;
   }
   return html+'</section>';
 }
@@ -1366,6 +1444,7 @@ document.addEventListener('click',async ev=>{
     case 'shop': openSheet(null,true); break;
     case 'shop-buy': readName(); S.editing.shop=false; S.editing.advice=null; await saveSheet(); break;
     case 'more': S.more=true;render();break;
+    case 'trip-ward': TRIP.showWard=true; render(); break;
     case 'chk-which': CHK.picking=d.w2; render(); break;
     case 'chk-rot': chkRotate(); break;
     case 'chk-new': resetCheck(); render(); window.scrollTo(0,0); break;
@@ -1384,14 +1463,14 @@ document.addEventListener('click',async ev=>{
   }
 });
 document.getElementById('add').addEventListener('click',()=>openSheet(null));
-document.addEventListener('input',e=>{if(e.target.id==='f-place'){TRIP.place=e.target.value; if(!TRIP.scene){const g=guessScene(TRIP.place); document.querySelectorAll('[data-scene]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.scene===g))}}});
+document.addEventListener('input',e=>{if(e.target.id==='f-date'){TRIP.start=e.target.value} if(e.target.id==='f-place'){TRIP.place=e.target.value; if(!TRIP.scene){const g=guessScene(TRIP.place); document.querySelectorAll('[data-scene]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.scene===g))}}});
 document.addEventListener('change',e=>{if(e.target.id==='f-photo')handlePhoto(e.target.files[0]); if(e.target.id==='f-check'&&e.target.files[0]){chkPhoto(e.target.files[0]);e.target.value=''} if(e.target.id==='f-restore'&&e.target.files[0]){importBackup(e.target.files[0]);e.target.value=''}});
 document.addEventListener('submit',e=>{e.preventDefault(); if(e.target.id==='sheet')saveSheet()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.editing)closeSheet()});
 let tt; function toast(m){let el=document.querySelector('.toast'); if(!el){el=document.createElement('div');el.className='toast';el.setAttribute('role','status');document.body.appendChild(el)} el.textContent=m; clearTimeout(tt); tt=setTimeout(()=>el.remove(),2800)}
 
 render(); initStore(); loadWeather(); loadTrends();
-const APP_VERSION='18/11 · 11';
+const APP_VERSION='18/11 · 12';
 if('serviceWorker' in navigator&&location.protocol==='https:'){
   navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{
     const check=()=>reg.update().catch(()=>{});
