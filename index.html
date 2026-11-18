@@ -95,6 +95,10 @@ section{display:flex;flex-direction:column;gap:12px;margin-top:8px}
 .pinned{display:flex;align-items:center;gap:10px;background:var(--accent-soft);border-radius:12px;padding:8px 10px;font-size:13.5px}
 .pinned .thumb{width:40px;height:40px;border-radius:8px;overflow:hidden;aspect-ratio:1;flex:none}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:30;max-width:calc(100% - 32px)}
+.wx{background:var(--accent-soft);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;font-size:13.5px;margin-bottom:6px}
+.wx-head{font-weight:600;font-size:15px}
+.wx-sub{font-weight:400;color:var(--muted);font-size:12.5px;display:block}
+.wx ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
 .tips{background:var(--surface);border-radius:16px;padding:14px;box-shadow:var(--shadow);font-size:13.5px}
 .tips ul{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
 /* tab bar */
@@ -258,6 +262,39 @@ const RISES = [['cao','Cạp cao',10,'Cạp cao kéo dài chân, lộ eo'],['vua
 
 const OCC = [['lam','Đi làm'],['choi','Đi chơi'],['hen','Hẹn hò'],['tiec','Tiệc'],['nha','Ở nhà, đi chợ']];
 const WEATHER = [['nong','Trời nóng'],['mat','Trời mát'],['lanh','Trời lạnh']];
+
+/* ---------- Thời tiết Hà Nội ---------- */
+let WX=null; // {temp,feels,hum,tmin,tmax,rainProb,rainNow,src}
+const HN_AVG={1:17,2:18,3:21,4:25,5:29,6:31,7:31,8:30,9:29,10:27,11:23,12:19};
+function hanoiByMonth(){const m=new Date().getMonth()+1,t=HN_AVG[m];return {temp:t,feels:t,hum:(m>=2&&m<=4)?90:75,tmin:t-4,tmax:t+4,rainProb:(m>=5&&m<=9)?60:20,rainNow:false,src:'month'}}
+function wxKind(w){const t=w.feels??w.temp; return t>=28?'nong':t>=20?'mat':'lanh'}
+function wxRainy(){return WX&&(WX.rainNow||WX.rainProb>=50)}
+function applyWX(w){WX=w; if(!S.weatherManual){S.weather=wxKind(w)} if(S.mode!=='loading')render()}
+async function loadWeather(){
+  try{const c=JSON.parse(localStorage.getItem('wx-hn')||'null'); if(c&&Date.now()-c.at<36e5){applyWX(c.w);return}}catch{}
+  applyWX(hanoiByMonth());
+  try{
+    const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=21.03&longitude=105.85&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FBangkok&forecast_days=1');
+    if(!r.ok)throw 0; const j=await r.json(); const c=j.current||{},d=j.daily||{};
+    const w={temp:Math.round(c.temperature_2m),feels:Math.round(c.apparent_temperature??c.temperature_2m),hum:Math.round(c.relative_humidity_2m??75),
+      tmin:Math.round(d.temperature_2m_min?.[0]??c.temperature_2m),tmax:Math.round(d.temperature_2m_max?.[0]??c.temperature_2m),
+      rainProb:Math.round(d.precipitation_probability_max?.[0]??0),rainNow:(c.precipitation>0)||(c.weather_code>=51),src:'live'};
+    if(!Number.isFinite(w.temp))throw 0;
+    try{localStorage.setItem('wx-hn',JSON.stringify({at:Date.now(),w}))}catch{}
+    applyWX(w);
+  }catch{}
+}
+function wxTips(){
+  if(!WX)return [];
+  const t=[],m=new Date().getMonth()+1;
+  if(wxRainy())t.push('Có thể mưa: ưu tiên quần dài sẫm màu và giày kín; tránh quần trắng, váy quá dài dễ ướt gấu. Mang theo áo mưa gọn.');
+  if(WX.tmin<=15)t.push(`Sáng tối lạnh, xuống ${WX.tmin}°: mặc áo khoác, quàng khăn màu hợp da như xám xanh, hồng phấn, navy.`);
+  else if(WX.tmin<20&&WX.tmax>=24)t.push('Sáng sớm se lạnh, trưa ấm: mặc nhiều lớp mỏng như cardigan, blazer để cởi ra khi nóng.');
+  if(WX.tmax-WX.tmin>=7&&WX.tmin>15)t.push('Chênh lệch ngày đêm lớn: nên có một lớp khoác mỏng.');
+  if(WX.hum>=85&&m>=2&&m<=4)t.push('Trời nồm ẩm: chọn cotton, lanh thoáng; tránh lụa mỏng sáng màu dễ lộ vết ẩm.');
+  if(WX.tmax>=33)t.push('Nắng nóng: chất liệu thoáng, màu sáng ở áo, tránh đồ bó sát. Nhớ áo chống nắng màu dịu.');
+  return t.slice(0,3);
+}
 const SEASONS = [['nong','Mùa nóng'],['lanh','Mùa lạnh'],['ca-nam','Cả năm']];
 
 function shapeOf(it){return (SHAPES[it.cat]?.opts||[]).find(o=>o[0]===it.shape)}
@@ -404,6 +441,10 @@ function buildOutfits(){
   const scoreCombo=(main)=>{
     let s=main.reduce((a,i)=>a+rated.get(i.id).s,0)/main.length; const pos=[],neg=[];
     for(const i of main){ if(!occOK(i)){s-=14;neg.push(`${i.name} thường không dùng cho dịp này`)} if(recentlyWorn(i)){s-=10;neg.push(`${i.name} vừa mặc mấy hôm trước`)} }
+    if(wxRainy()){ for(const i of main){ const ci=C[i.color];
+      if((i.cat==='bottom'||i.cat==='skirt')&&ci&&ci.d===1){s-=6;neg.push('Trời Hà Nội có thể mưa, đồ sáng màu phía dưới dễ bẩn')}
+      if((i.cat==='skirt'||i.cat==='dress')&&i.length==='maxi'){s-=4;neg.push('Váy dài dễ ướt gấu khi mưa')}
+      if(i.cat==='bottom'&&ci&&ci.d===3){s+=3;pos.push('Quần sẫm màu hợp ngày mưa, ít lộ vết bẩn')} } }
     if(main.length===2){
       const [t,b]=main; const ct=C[t.color],cb=C[b.color];
       if(ct&&cb){
@@ -432,7 +473,7 @@ function buildOutfits(){
     if(w!=='nong'&&outers.length){ const o=outers[idx%Math.min(outers.length,2)]; c.extra.push(o); const r=rated.get(o.id); if(r.pos[0]&&w==='lanh')c.pos.push(r.pos[r.pos.length-1]) }
     if(shoes.length){ const low=c.main[c.main.length-1]; const lc=C[low.color];
       const pick=[...shoes].sort((a,b)=>(score(b)-score(a)))[idx%Math.min(shoes.length,2)];
-      function score(sh){let v=rated.get(sh.id).s; const sc=C[sh.color]; if(lc&&sc&&(sc.d===lc.d||sc.id==='be-hong'||sc.id==='kem'))v+=8; return v}
+      function score(sh){let v=rated.get(sh.id).s; if(wxRainy()&&['quaimanh','bupbe','deple'].includes(sh.shape))v-=12; if(wxRainy()&&['sneaker','botcao','botthap'].includes(sh.shape))v+=4; const sc=C[sh.color]; if(lc&&sc&&(sc.d===lc.d||sc.id==='be-hong'||sc.id==='kem'))v+=8; return v}
       c.extra.push(pick); const sc=C[pick.color];
       if(sc&&lc&&(sc.d===lc.d))c.pos.push('Giày cùng tông với phần dưới, chân trông dài hơn');
       else if(sc&&(sc.id==='be-hong'||sc.id==='kem'))c.pos.push('Giày màu nude kéo dài chân');
@@ -487,8 +528,15 @@ function tipsHTML(){return `<div class="tips"><div class="label">Quy tắc app �
   <li>Hạn chế skinny sáng màu, short ôm, váy bút chì, áo khoác dài ngang hông.</li>
   <li>Màu hợp: xanh baby, lavender, hồng phấn, hồng dâu, xám xanh, navy, trắng ngà. Tránh cam, vàng nghệ, nâu đất, đen tuyền sát mặt.</li>
   <li>Trang sức bạc, vàng trắng hợp hơn vàng.</li></ul></div>`}
+function wxHTML(){
+  if(!WX)return '';
+  const tips=wxTips();
+  const head=WX.src==='live'?`Hà Nội hôm nay · ${WX.temp}° <span class="wx-sub">cảm giác ${WX.feels}° · ${WX.tmin}–${WX.tmax}° · mưa ${WX.rainProb}%</span>`:`Hà Nội tháng này · khoảng ${WX.temp}° <span class="wx-sub">chưa lấy được thời tiết hôm nay</span>`;
+  return `<div class="wx"><div class="wx-head">${head}</div>${tips.length?`<ul>${tips.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:''}${S.weatherManual?`<button class="btn ghost small" data-act="wx-auto">Chọn lại theo thời tiết Hà Nội</button>`:''}</div>`;
+}
 function viewOutfits(){
   const ctl=`<div class="controls">
+    ${wxHTML()}
     <div class="label">Hôm nay đi đâu?</div>
     <div class="chips">${OCC.map(([k,n])=>`<button class="chip" data-occ="${k}" aria-pressed="${S.occ===k}">${n}</button>`).join('')}</div>
     <div class="chips">${WEATHER.map(([k,n])=>`<button class="chip" data-w="${k}" aria-pressed="${S.weather===k}">${n}</button>`).join('')}</div>
@@ -612,7 +660,7 @@ document.addEventListener('click',async ev=>{
   if(d.tab){S.tab=d.tab;S.more=false;render();window.scrollTo(0,0);return}
   if(d.cat){S.cat=d.cat;render();return}
   if(d.occ){S.occ=d.occ;S.more=false;render();return}
-  if(d.w){S.weather=d.w;S.more=false;render();return}
+  if(d.w){S.weather=d.w;S.weatherManual=true;S.more=false;render();return}
   if(d.open){if(S.editing)return; const it=S.items.find(i=>i.id===d.open); if(it)openSheet(it);return}
   if(d.wear){const ids=d.wear.split(','); for(const id of ids){const it=S.items.find(i=>i.id===id); if(it)await patchItem(id,{lastWorn:Date.now(),worn:(it.worn||0)+1})} toast('Đã ghi lại. Mấy hôm tới app sẽ ưu tiên đồ khác.');return}
   // trong bảng sửa
@@ -631,6 +679,7 @@ document.addEventListener('click',async ev=>{
     case 'backup': exportBackup();break;
     case 'samples': await addSamples();break;
     case 'rm-samples': await removeSamples();break;
+    case 'wx-auto': S.weatherManual=false; if(WX)S.weather=wxKind(WX); render();break;
     case 'more': S.more=true;render();break;
     case 'unpin': S.pin=null;render();break;
     case 'rot': rotatePhoto();break;
@@ -647,7 +696,7 @@ document.addEventListener('submit',e=>{e.preventDefault(); if(e.target.id==='she
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.editing)closeSheet()});
 let tt; function toast(m){let el=document.querySelector('.toast'); if(!el){el=document.createElement('div');el.className='toast';el.setAttribute('role','status');document.body.appendChild(el)} el.textContent=m; clearTimeout(tt); tt=setTimeout(()=>el.remove(),2800)}
 
-render(); initStore();
+render(); initStore(); loadWeather();
 if('serviceWorker' in navigator&&location.protocol==='https:'){navigator.serviceWorker.register('sw.js').catch(()=>{})}
 </script>
 
