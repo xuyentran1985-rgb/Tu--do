@@ -120,6 +120,8 @@ nav.tabs .tab svg{width:22px;height:22px}
 .field{display:flex;flex-direction:column;gap:6px}
 .field>label,.field>.label{font-size:13px;font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0}
 input[type=text],select{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:11px 12px}
+.picker{display:flex;flex-direction:column;gap:6px}
+.picker img{width:100%;border-radius:14px;cursor:crosshair;touch-action:manipulation}
 .photo-drop{display:flex;gap:12px;align-items:center}
 .photo-drop .thumb{width:96px;height:120px;border-radius:14px;overflow:hidden;flex:none}
 .photo-drop .col{display:flex;flex-direction:column;gap:8px;min-width:0}
@@ -296,6 +298,18 @@ function wxTips(){
   return t.slice(0,3);
 }
 const SEASONS = [['nong','Mùa nóng'],['lanh','Mùa lạnh'],['ca-nam','Cả năm']];
+const FABRICS = [['cotton','Cotton'],['lanh','Lanh / đũi'],['thun','Thun co giãn'],['voan','Voan / chiffon'],['lua','Lụa / satin'],['jean','Jean / denim'],['kaki','Kaki / tây'],['len','Len / dệt kim'],['ni','Nỉ / dạ'],['da','Da'],['khac','Khác']];
+const FAB_WARM=['len','ni','da','kaki'], FAB_COOL=['lanh','cotton','voan'], FAB_THIN=['voan','lua','lanh'];
+function fabricNote(i,w){
+  const f=i.fabric; if(!f||f==='khac')return null; const n=optLabel(FABRICS,f);
+  const m=new Date().getMonth()+1, nom=WX&&WX.hum>=85&&m>=2&&m<=4;
+  if(w==='lanh'){ if(FAB_WARM.includes(f))return [4,`${i.name} chất ${n.toLowerCase()} ấm, hợp trời lạnh`]; if(FAB_THIN.includes(f))return [-6,`${i.name} chất ${n.toLowerCase()} mỏng, dễ lạnh`]; }
+  if(w==='nong'){ if(FAB_COOL.includes(f))return [4,`${i.name} chất ${n.toLowerCase()} thoáng mát`]; if(['len','ni','da'].includes(f))return [-8,`${i.name} chất ${n.toLowerCase()} bí nóng`]; }
+  if(wxRainy()&&['da','lua'].includes(f))return [-4,`${i.name} chất ${n.toLowerCase()} ngại nước mưa`];
+  if(nom&&f==='lua')return [-3,'Trời nồm, lụa dễ lộ vết ẩm'];
+  if(nom&&(f==='cotton'||f==='lanh'))return [2,`${n} thấm hút tốt ngày nồm`];
+  return null;
+}
 
 function shapeOf(it){return (SHAPES[it.cat]?.opts||[]).find(o=>o[0]===it.shape)}
 function optLabel(list,id){return (list.find(o=>o[0]===id)||[])[1]||''}
@@ -316,6 +330,8 @@ function rateItem(it){
     else if(col.d===1){s-=6;neg.push('Quần sáng màu làm đùi trông to hơn')}
     if(it.shape==='skinny'&&col.d===1){s-=10;neg.push('Skinny sáng màu là kiểu nên tránh nhất với dáng quả lê')}
   }
+  if((it.cat==='bottom'||it.cat==='skirt')&&it.fabric==='thun'){s-=5;neg.push('Chất thun co giãn bám sát đùi, chọn dáng suông sẽ đỡ hơn')}
+  if((it.cat==='bottom'||it.cat==='skirt')&&['kaki','jean'].includes(it.fabric)&&['suong','loe','a','rong'].includes(it.shape)){s+=3;pos.push('Chất đứng form giữ dáng suông, không bám đùi')}
   if(it.cat==='skirt'&&col&&col.d===3){s+=5;pos.push('Chân váy tối màu gọn hông')}
   if((it.cat==='bottom'||it.cat==='skirt')&&it.rise){const r=RISES.find(x=>x[0]===it.rise); if(r){s+=r[2]; if(r[3])(r[2]>=0?pos:neg).push(r[3])}}
   if((it.cat==='skirt'||it.cat==='dress')&&it.length){const l=LENGTHS.find(x=>x[0]===it.length); if(l){s+=l[2]; if(l[3])(l[2]>=0?pos:neg).push(l[3])}}
@@ -363,6 +379,7 @@ async function initStore(){
     idb=await openDB();
     S.items=await tx('readonly',st=>st.getAll())||[];
     S.mode='db';
+    await fixAutoNames();
     try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch{}
   }catch(e){S.mode='local';S.err='Trình duyệt này không cho lưu dữ liệu (có thể đang ở chế độ ẩn danh). Đồ thêm vào sẽ mất khi đóng trang.'}
   setSync();render();
@@ -442,6 +459,7 @@ function buildOutfits(){
     let s=main.reduce((a,i)=>a+rated.get(i.id).s,0)/main.length; const pos=[],neg=[];
     for(const i of main){ if(!occOK(i)){s-=14;neg.push(`${i.name} thường không dùng cho dịp này`)} if(recentlyWorn(i)){s-=10;neg.push(`${i.name} vừa mặc mấy hôm trước`)} }
     for(const i of main){ if(!fitsWeather(i,w)){ s-=8; neg.push(w==='lanh'?`${i.name} là đồ mùa nóng, nhớ khoác thêm áo ngoài`:`${i.name} hơi dày cho trời nóng`) } }
+    for(const i of main){ const fn=fabricNote(i,w); if(fn){s+=fn[0]; (fn[0]>=0?pos:neg).push(fn[1])} }
     if(wxRainy()){ for(const i of main){ const ci=C[i.color];
       if((i.cat==='bottom'||i.cat==='skirt')&&ci&&ci.d===1){s-=6;neg.push('Trời Hà Nội có thể mưa, đồ sáng màu phía dưới dễ bẩn')}
       if((i.cat==='skirt'||i.cat==='dress')&&i.length==='maxi'){s-=4;neg.push('Váy dài dễ ướt gấu khi mưa')}
@@ -593,8 +611,12 @@ function drawSheet(){
       <label class="btn ghost small" for="f-photo" style="text-align:center">${e.photo?'Đổi ảnh':'Chụp hoặc chọn ảnh'}</label>
       <input id="f-photo" type="file" accept="image/*" hidden>
       ${e.photo?'<div class="row"><button type="button" class="btn ghost small" data-act="rot" aria-label="Xoay ảnh 90 độ">↻ Xoay ảnh</button><button type="button" class="btn ghost small" data-act="rm-photo">Bỏ ảnh</button></div>':''}
-      <span class="hint" id="photo-hint">${e.guess?`Màu đoán từ ảnh: <b>${C[e.guess].name}</b>. Chỉnh bên dưới nếu chưa đúng.`:'Chụp trên nền trơn để app đoán màu chuẩn hơn.'}</span>
+      <span class="hint" id="photo-hint">${e.guess?`Màu đoán từ ảnh: <b>${C[e.guess].name}</b>.`:'Chụp trên nền trơn để app đoán màu chuẩn hơn.'}</span>
+      ${e.photo?`<button type="button" class="btn ghost small" data-act="pick">${e.picking?'Hủy lấy màu':'Chạm vào ảnh để lấy màu'}</button>`:''}
+      ${e.catGuess==='loading'?'<span class="hint">Đang nhận diện loại đồ…</span>':e.catGuess?`<span class="hint">App đoán đây là <b>${CAT[e.catGuess].name.toLowerCase()}</b>. Bấm chọn lại bên dưới nếu sai.</span>`:e.catGuess===false?'<span class="hint">Chưa nhận ra loại đồ, bạn chọn giúp bên dưới nhé.</span>':''}
     </div></div>
+    ${e.picking&&e.photo?`<div class="picker"><div class="hint">Chạm vào đúng phần vải của món đồ (tránh chỗ bóng, chỗ lóa sáng).</div><img src="${e.photo}" alt="Ảnh món đồ, chạm để lấy màu" id="pick-img"></div>`:''}
+    ${e.cands&&e.cands.length>1?`<div class="field"><span class="label">Màu giống nhất trong ảnh</span><div class="opts">${e.cands.map(id=>`<button type="button" class="chip" data-color="${id}" aria-pressed="${e.color===id}"><span class="dot" style="background:${C[id].hex};display:inline-block;margin-right:6px;vertical-align:-1px"></span>${C[id].name}</button>`).join('')}</div></div>`:''}
     <div class="field"><label for="f-name">Tên món</label><input id="f-name" type="text" value="${esc(e.name)}" placeholder="Ví dụ: Sơ mi lụa xanh baby" autocomplete="off"></div>
     <div class="field"><span class="label">Loại</span><div class="opts">${CATS.map(c=>`<button type="button" class="chip" data-ecat="${c.id}" aria-pressed="${e.cat===c.id}">${c.name}</button>`).join('')}</div></div>
     ${sh?`<div class="field"><span class="label">${sh.label}</span><div class="opts">${sh.opts.map(o=>`<button type="button" class="chip" data-shape="${o[0]}" aria-pressed="${e.shape===o[0]}">${o[1]}</button>`).join('')}</div></div>`:''}
@@ -603,6 +625,7 @@ function drawSheet(){
     <div class="field"><span class="label">Màu chính</span>${grp('hop','Hợp với bạn')}${grp('tt','Trung tính')}${grp('tranh','Nên tránh gần mặt')}</div>
     ${r?`<div class="verdict"><span class="pill v${r.v.k}">${r.v.t} · ${r.s}/100</span><ul class="reasons">${r.pos.map(p=>`<li>${esc(p)}</li>`).join('')}${r.neg.map(p=>`<li class="neg">${esc(p)}</li>`).join('')}</ul></div>`:''}
     <div class="field"><span class="label">Mặc vào dịp nào</span><div class="opts">${OCC.map(([k,n])=>`<button type="button" class="chip" data-eocc="${k}" aria-pressed="${e.occ.includes(k)}">${n}</button>`).join('')}</div></div>
+    <div class="field"><span class="label">Chất liệu</span><div class="opts">${FABRICS.map(([k,n])=>`<button type="button" class="chip" data-fabric="${k}" aria-pressed="${e.fabric===k}">${n}</button>`).join('')}</div></div>
     <div class="field"><span class="label">Mùa</span><div class="opts">${SEASONS.map(([k,n])=>`<button type="button" class="chip" data-season="${k}" aria-pressed="${e.season===k}">${n}</button>`).join('')}</div></div>
     ${e.lastWorn?`<div class="hint">Mặc lần gần nhất: ${new Date(e.lastWorn).toLocaleDateString('vi-VN')} · đã mặc ${e.worn||1} lần</div>`:''}
     <div class="row">
@@ -626,19 +649,55 @@ function legacyLoad(file){
   fr.onload=()=>{const img=new Image(); img.onload=()=>processImage(img,img.naturalWidth,img.naturalHeight); img.onerror=()=>toast('Không đọc được ảnh này, thử ảnh khác nhé.'); img.src=fr.result};
   fr.readAsDataURL(file);
 }
+/* Màu: đổi sang Lab để so màu giống mắt người */
+function toLab(r,g,b){
+  const f=c=>{c/=255;return c>0.04045?((c+0.055)/1.055)**2.4:c/12.92};
+  let R=f(r),G=f(g),B=f(b);
+  let x=(R*0.4124+G*0.3576+B*0.1805)/0.95047, y=R*0.2126+G*0.7152+B*0.0722, z=(R*0.0193+G*0.1192+B*0.9505)/1.08883;
+  const h=t=>t>0.008856?Math.cbrt(t):7.787*t+16/116; x=h(x);y=h(y);z=h(z);
+  return [116*y-16,500*(x-y),200*(y-z)];
+}
+const PAL_LAB=COLORS.filter(c=>!c.pattern).map(c=>{const v=parseInt(c.hex.slice(1),16);return {id:c.id,lab:toLab(v>>16,v>>8&255,v&255)}});
+function nearestColors(r,g,b,k=3){const L=toLab(r,g,b);return PAL_LAB.map(p=>({id:p.id,d:(L[0]-p.lab[0])**2*0.6+(L[1]-p.lab[1])**2+(L[2]-p.lab[2])**2})).sort((a,b)=>a.d-b.d).slice(0,k)}
+function guessColors(ctx,w,h){
+  const all=ctx.getImageData(0,0,w,h).data, at=(x,y)=>{const i=(y*w+x)*4;return [all[i],all[i+1],all[i+2]]};
+  // màu nền: lấy ở viền ảnh
+  const edge=[]; for(let x=0;x<w;x+=4){edge.push(at(x,1),at(x,h-2))} for(let y=0;y<h;y+=4){edge.push(at(1,y),at(w-2,y))}
+  const med=i=>edge.map(p=>p[i]).sort((a,b)=>a-b)[edge.length>>1]; const bg=toLab(med(0),med(1),med(2));
+  // gom màu vùng giữa, bỏ điểm giống nền, bỏ điểm quá chói hoặc quá tối (bóng, lóa)
+  const buckets=new Map();
+  for(let y=Math.round(h*.15);y<h*.85;y+=3)for(let x=Math.round(w*.15);x<w*.85;x+=3){
+    const [r,g,b]=at(x,y); const L=toLab(r,g,b);
+    if((L[0]-bg[0])**2+(L[1]-bg[1])**2+(L[2]-bg[2])**2<120)continue;
+    const key=(r>>4)+'-'+(g>>4)+'-'+(b>>4); const o=buckets.get(key)||{n:0,r:0,g:0,b:0}; o.n++;o.r+=r;o.g+=g;o.b+=b; buckets.set(key,o);
+  }
+  let list=[...buckets.values()].sort((a,b)=>b.n-a.n);
+  if(!list.length){const [r,g,b]=at(w>>1,h>>1);list=[{n:1,r,g,b}]}
+  // gộp các nhóm hàng đầu thành màu chủ đạo
+  const top=list.slice(0,6), tot=top.reduce((a,o)=>a+o.n,0);
+  const score=new Map();
+  for(const o of top){ for(const [j,c] of nearestColors(o.r/o.n,o.g/o.n,o.b/o.n,2).entries()) score.set(c.id,(score.get(c.id)||0)+o.n/tot*(j?0.35:1)) }
+  return [...score.entries()].sort((a,b)=>b[1]-a[1]).slice(0,4).map(x=>x[0]);
+}
+function pickColorAt(ev){
+  const e=S.editing, img=ev.target; if(!e||!e.photo||img.tagName!=='IMG')return;
+  const rect=img.getBoundingClientRect(), cv=document.createElement('canvas'); cv.width=img.naturalWidth; cv.height=img.naturalHeight;
+  const ctx=cv.getContext('2d'); ctx.drawImage(img,0,0);
+  const x=Math.round((ev.clientX-rect.left)/rect.width*cv.width), y=Math.round((ev.clientY-rect.top)/rect.height*cv.height);
+  const d=ctx.getImageData(Math.max(0,x-3),Math.max(0,y-3),7,7).data; let r=0,g=0,b=0,n=0; for(let i=0;i<d.length;i+=4){r+=d[i];g+=d[i+1];b+=d[i+2];n++}
+  const c=nearestColors(r/n,g/n,b/n,3); readName(); e.color=c[0].id; e.guess=c[0].id; e.cands=c.map(x=>x.id); e.picking=false; drawSheet();
+  toast('Đã lấy màu '+C[c[0].id].name);
+}
 function processImage(img,iw,ih){ {
     const max=520, k=Math.min(1,max/Math.max(iw,ih));
     const cv=document.createElement('canvas'); cv.width=Math.round(iw*k); cv.height=Math.round(ih*k);
     const ctx=cv.getContext('2d'); ctx.drawImage(img,0,0,cv.width,cv.height);
     let data=cv.toDataURL('image/jpeg',.72);
     if(data.length>180000) data=cv.toDataURL('image/jpeg',.5);
-    // đoán màu: trung bình vùng giữa 40%
-    const w=cv.width,h=cv.height,x0=Math.round(w*.3),y0=Math.round(h*.3),cw=Math.max(1,Math.round(w*.4)),ch=Math.max(1,Math.round(h*.4));
-    const px=ctx.getImageData(x0,y0,cw,ch).data; let r=0,g=0,b=0,n=0;
-    for(let i=0;i<px.length;i+=16){r+=px[i];g+=px[i+1];b+=px[i+2];n++}
-    r/=n;g/=n;b/=n; let best=null,bd=1e9;
-    for(const c of COLORS){ if(c.pattern)continue; const v=parseInt(c.hex.slice(1),16); const d=(r-(v>>16))**2*2+(g-(v>>8&255))**2*4+(b-(v&255))**2*3; if(d<bd){bd=d;best=c} }
-    readName(); S.editing.photo=data; if(best){S.editing.guess=best.id; S.editing.color=best.id} drawSheet();
+    const cands=guessColors(ctx,cv.width,cv.height); const best=cands[0]?C[cands[0]]:null;
+    readName(); S.editing.photo=data; S.editing.cands=cands; S.editing.picking=false; if(best){S.editing.guess=best.id; S.editing.color=best.id}
+    if(!S.editing.catTouched){S.editing.catGuess='loading'; guessCategory(cv,S.editing)}
+    drawSheet();
   }
 }
 
@@ -651,18 +710,57 @@ function rotatePhoto(){
     if(!e.isNew){ putItem((({isNew,guess,...it})=>it)(e)).then(()=>toast('Đã xoay và lưu ảnh.')).catch(()=>{}) }
   }; img.src=e.photo;
 }
+/* Nhận diện loại đồ ngay trên máy (MobileNet, tải lần đầu ~14MB rồi lưu lại) */
+const CAT_WORDS={
+  top:['jersey','T-shirt','sweatshirt','cardigan','brassiere','pajama','blouse','bulletproof vest'],
+  outer:['trench coat','fur coat','lab coat','suit','poncho','cloak','windsor tie'],
+  bottom:['jean','blue jean','denim','swimming trunks'],
+  skirt:['miniskirt','overskirt','hoopskirt','sarong'],
+  dress:['gown','abaya','kimono','vestment'],
+  shoes:['sandal','running shoe','loafer','cowboy boot','clog','Loafer','shoe shop'],
+  bag:['purse','backpack','mailbag','wallet','plastic bag'],
+};
+let mlModel=null, mlLoading=null;
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
+async function getModel(){
+  if(mlModel)return mlModel;
+  if(!mlLoading)mlLoading=(async()=>{await loadScript('ml/tf.min.js');await loadScript('ml/mobilenet.min.js');mlModel=await mobilenet.load({version:2,alpha:1.0,modelUrl:'ml/model.json'});return mlModel})();
+  return mlLoading;
+}
+async function classifyClothes(canvas){
+  const m=await getModel(); const preds=await m.classify(canvas,10);
+  const score={};
+  for(const p of preds){ const name=p.className.toLowerCase();
+    for(const [cat,words] of Object.entries(CAT_WORDS)) if(words.some(w=>name.split(',').map(x=>x.trim()).includes(w.toLowerCase()))) score[cat]=(score[cat]||0)+p.probability; }
+  const best=Object.entries(score).sort((a,b)=>b[1]-a[1])[0];
+  return best&&best[1]>=0.12?best[0]:null;
+}
+async function guessCategory(canvas,e){
+  let cat=null; try{cat=await classifyClothes(canvas)}catch(err){cat=null}
+  if(S.editing!==e||e.catTouched)return;
+  readName();
+  if(cat){e.catGuess=cat; e.cat=cat; e.shape=SHAPES[cat]?.opts[0][0]; if(cat==='bottom'||cat==='skirt')e.rise=e.rise||'cao'; if(cat==='skirt'||cat==='dress')e.length=e.length||'midi'}
+  else e.catGuess=false;
+  drawSheet();
+}
+function autoName(it){return `${CAT[it.cat].name} ${C[it.color]?C[it.color].name.toLowerCase():''}`.trim()}
+function isAutoName(n){n=(n||'').trim().toLowerCase(); return CATS.some(c=>COLORS.some(col=>n===`${c.name} ${col.name}`.toLowerCase()))||CATS.some(c=>n===c.name.toLowerCase())}
+async function fixAutoNames(){ // sửa tên tự đặt bị lệch loại (vd. quần mà tên "Áo đen")
+  for(const it of S.items){ if(isAutoName(it.name)&&it.name!==autoName(it)) await putItem({...it,name:autoName(it)}).catch(()=>{}) }
+}
 async function saveSheet(){
   readName(); const e=S.editing;
   if(!e.color){toast('Chọn màu chính cho món đồ nhé.');return}
-  if(!e.name.trim()) e.name=`${CAT[e.cat].name} ${C[e.color].name.toLowerCase()}`;
-  const {isNew,guess,...it}=e; if(isNew)it.created=Date.now();
+  if(!e.name.trim()||isAutoName(e.name)) e.name=autoName(e);
+  const {isNew,guess,catGuess,catTouched,cands,picking,...it}=e; if(isNew)it.created=Date.now();
   if(isNew) delete it.sample;
   try{ await putItem(it); closeSheet(); toast(isNew?'Đã thêm vào tủ.':'Đã lưu.') }catch{}
 }
 
 /* ---------- Sự kiện ---------- */
 document.addEventListener('click',async ev=>{
-  const t=ev.target.closest('[data-tab],[data-act],[data-cat],[data-open],[data-occ],[data-w],[data-wear],[data-ecat],[data-shape],[data-rise],[data-len],[data-color],[data-eocc],[data-season]');
+  if(ev.target.id==='pick-img'){pickColorAt(ev);return}
+  const t=ev.target.closest('[data-tab],[data-act],[data-cat],[data-open],[data-occ],[data-w],[data-wear],[data-ecat],[data-shape],[data-rise],[data-len],[data-color],[data-eocc],[data-season],[data-fabric]');
   if(!t){return}
   const d=t.dataset;
   if(d.act==='scrim'&&ev.target!==t)return;
@@ -674,13 +772,14 @@ document.addEventListener('click',async ev=>{
   if(d.wear){const ids=d.wear.split(','); for(const id of ids){const it=S.items.find(i=>i.id===id); if(it)await patchItem(id,{lastWorn:Date.now(),worn:(it.worn||0)+1})} toast('Đã ghi lại. Mấy hôm tới app sẽ ưu tiên đồ khác.');return}
   // trong bảng sửa
   if(S.editing){ readName();
-    if(d.ecat){S.editing.cat=d.ecat; S.editing.shape=SHAPES[d.ecat]?.opts[0][0]; if(d.ecat==='bottom'||d.ecat==='skirt')S.editing.rise=S.editing.rise||'cao'; if(d.ecat==='skirt'||d.ecat==='dress')S.editing.length=S.editing.length||'midi'; drawSheet();return}
+    if(d.ecat){S.editing.catTouched=true;S.editing.catGuess=undefined;S.editing.cat=d.ecat; S.editing.shape=SHAPES[d.ecat]?.opts[0][0]; if(d.ecat==='bottom'||d.ecat==='skirt')S.editing.rise=S.editing.rise||'cao'; if(d.ecat==='skirt'||d.ecat==='dress')S.editing.length=S.editing.length||'midi'; drawSheet();return}
     if(d.shape){S.editing.shape=d.shape;drawSheet();return}
     if(d.rise){S.editing.rise=d.rise;drawSheet();return}
     if(d.len){S.editing.length=d.len;drawSheet();return}
     if(d.color){S.editing.color=d.color;drawSheet();return}
     if(d.eocc){const o=S.editing.occ; const i=o.indexOf(d.eocc); i>=0?o.splice(i,1):o.push(d.eocc); drawSheet();return}
     if(d.season){S.editing.season=d.season;drawSheet();return}
+    if(d.fabric){S.editing.fabric=S.editing.fabric===d.fabric?undefined:d.fabric;drawSheet();return}
   }
   switch(d.act){
     case 'add': openSheet(null);break;
@@ -692,6 +791,7 @@ document.addEventListener('click',async ev=>{
     case 'more': S.more=true;render();break;
     case 'unpin': S.pin=null;render();break;
     case 'rot': rotatePhoto();break;
+    case 'pick': readName(); S.editing.picking=!S.editing.picking; drawSheet(); if(S.editing.picking)setTimeout(()=>document.getElementById('pick-img')?.scrollIntoView({block:'center',behavior:'smooth'}),50); break;
     case 'rm-photo': delete S.editing.photo; delete S.editing.guess; drawSheet();break;
     case 'pin': S.pin=S.editing.id; closeSheet(); S.tab='phoi'; S.more=false; render(); window.scrollTo(0,0);break;
     case 'del': S.confirmDel=true;drawSheet();break;
