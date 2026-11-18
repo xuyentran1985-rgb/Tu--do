@@ -429,7 +429,7 @@ function fitsWeather(it,w){ if(!it.season||it.season==='ca-nam')return true; if(
 function recentlyWorn(it){return it.lastWorn && (Date.now()-it.lastWorn)<3*864e5}
 function buildOutfits(){
   const occ=S.occ,w=S.weather;
-  const pool=S.items.filter(it=>fitsWeather(it,w));
+  const pool=S.items;
   const by=c=>pool.filter(i=>i.cat===c);
   const rated=new Map(S.items.map(i=>[i.id,rateItem(i)]));
   const occOK=i=>fitsOcc(i,occ);
@@ -441,6 +441,7 @@ function buildOutfits(){
   const scoreCombo=(main)=>{
     let s=main.reduce((a,i)=>a+rated.get(i.id).s,0)/main.length; const pos=[],neg=[];
     for(const i of main){ if(!occOK(i)){s-=14;neg.push(`${i.name} thường không dùng cho dịp này`)} if(recentlyWorn(i)){s-=10;neg.push(`${i.name} vừa mặc mấy hôm trước`)} }
+    for(const i of main){ if(!fitsWeather(i,w)){ s-=8; neg.push(w==='lanh'?`${i.name} là đồ mùa nóng, nhớ khoác thêm áo ngoài`:`${i.name} hơi dày cho trời nóng`) } }
     if(wxRainy()){ for(const i of main){ const ci=C[i.color];
       if((i.cat==='bottom'||i.cat==='skirt')&&ci&&ci.d===1){s-=6;neg.push('Trời Hà Nội có thể mưa, đồ sáng màu phía dưới dễ bẩn')}
       if((i.cat==='skirt'||i.cat==='dress')&&i.length==='maxi'){s-=4;neg.push('Váy dài dễ ướt gấu khi mưa')}
@@ -510,6 +511,7 @@ function viewWardrobe(){
       <button class="chip" data-cat="all" aria-pressed="${S.cat==='all'}">Tất cả<span class="n">${S.items.length}</span></button>
       ${CATS.filter(c=>counts[c.id]).map(c=>`<button class="chip" data-cat="${c.id}" aria-pressed="${S.cat===c.id}">${c.name}<span class="n">${counts[c.id]}</span></button>`).join('')}
     </div>
+    ${(()=>{const c={tops:counts.top||0,lows:(counts.bottom||0)+(counts.skirt||0),dresses:counts.dress||0}; return ((c.tops&&c.lows)||c.dresses)?'':`<div class="banner">${missingText(c)}</div>`})()}
     ${low?`<div class="hint">${low} món được chấm “Nên hạn chế”. Bấm vào để xem lý do và cách mặc cho đỡ.</div>`:''}
     <div class="grid">${list.map(it=>{const r=rateItem(it);return `<button class="item" data-open="${it.id}">${thumbHTML(it)}<div class="meta"><span class="name">${esc(it.name)}</span><span class="pill v${r.v.k}">${r.v.t}</span></div></button>`}).join('')}</div>
     <div class="row">${hasSample?`<button class="btn ghost small" data-act="rm-samples">Xóa các món mẫu</button>`:''}<button class="btn ghost small" data-act="backup">Sao lưu ra file</button><label class="btn ghost small" for="f-restore">Khôi phục từ file</label></div>
@@ -534,6 +536,14 @@ function wxHTML(){
   const head=WX.src==='live'?`Hà Nội hôm nay · ${WX.temp}° <span class="wx-sub">cảm giác ${WX.feels}° · ${WX.tmin}–${WX.tmax}° · mưa ${WX.rainProb}%</span>`:`Hà Nội tháng này · khoảng ${WX.temp}° <span class="wx-sub">chưa lấy được thời tiết hôm nay</span>`;
   return `<div class="wx"><div class="wx-head">${head}</div>${tips.length?`<ul>${tips.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:''}${S.weatherManual?`<button class="btn ghost small" data-act="wx-auto">Chọn lại theo thời tiết Hà Nội</button>`:''}</div>`;
 }
+function missingText(c){
+  const have=`Tủ đồ đang có: <b>${c.tops} áo</b>, <b>${c.lows} quần/chân váy</b>, <b>${c.dresses} váy liền</b>.`;
+  if(S.pin) return have+' Món đang chọn chưa ghép được với món nào. Bấm "Bỏ chọn" để xem các bộ khác.';
+  if(!c.tops&&!c.lows&&!c.dresses) return have+' Để phối được, app cần ít nhất <b>1 áo + 1 quần hoặc chân váy</b>, hoặc <b>1 váy liền</b>. Giày, túi, áo khoác chỉ là đồ đi kèm.';
+  if(!c.lows&&!c.dresses) return have+' Cần thêm ít nhất <b>1 quần hoặc chân váy</b> để ghép với áo.';
+  if(!c.tops&&!c.dresses) return have+' Cần thêm ít nhất <b>1 áo</b> để ghép với quần/chân váy.';
+  return have+' Thử thêm vài món nữa nhé.';
+}
 function viewOutfits(){
   const ctl=`<div class="controls">
     ${wxHTML()}
@@ -546,8 +556,7 @@ function viewOutfits(){
   if(!S.items.length) return `<section>${ctl}<div class="empty"><h2>Chưa có đồ để phối</h2><p>Thêm vài cái áo và quần hoặc váy, hoặc thử với bộ mẫu.</p><div class="row"><button class="btn" data-act="add">Thêm món đồ</button><button class="btn ghost" data-act="samples">Thử với 13 món mẫu</button></div></div></section>`;
   const {out,counts}=buildOutfits();
   if(!out.length){
-    const miss=[]; if(!counts.tops&&!counts.dresses)miss.push('áo'); if(!counts.lows&&!counts.dresses)miss.push('quần hoặc chân váy');
-    return `<section>${ctl}${pin}<div class="empty"><h2>Chưa ghép được bộ nào</h2><p>${miss.length?`Tủ đồ còn thiếu ${miss.join(' và ')} hợp với thời tiết này.`:'Thử đổi thời tiết, hoặc thêm đồ cho dịp này.'}</p><div class="row"><button class="btn" data-act="add">Thêm món đồ</button></div></div></section>`;
+    return `<section>${ctl}${pin}<div class="empty"><h2>Chưa ghép được bộ nào</h2><p>${missingText(counts)}</p><div class="row"><button class="btn" data-act="add">Thêm món đồ</button></div></div></section>`;
   }
   const shown=S.more?out:out.slice(0,4);
   return `<section>${ctl}${pin}
