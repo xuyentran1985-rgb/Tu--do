@@ -106,6 +106,7 @@ section{display:flex;flex-direction:column;gap:12px;margin-top:8px}
 .strip-item .thumb{aspect-ratio:1;border-radius:10px;overflow:hidden}
 .strip-item .tag-sample{display:none}
 .strip-item[aria-pressed="true"]{border-color:var(--accent)}
+.acc-tip ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:2px}
 .acc-tip{display:flex;flex-direction:column;gap:3px;background:var(--bg);border-radius:12px;padding:9px 11px;font-size:13.5px}
 .tips{background:var(--surface);border-radius:16px;padding:14px;box-shadow:var(--shadow);font-size:13.5px}
 .tips ul{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
@@ -799,7 +800,7 @@ function outfitHTML(c,i){
       <div class="scorebar" title="Độ hợp ${c.s}/100"><i style="width:${c.s}%"></i></div></div>
     <div class="pieces">${all.map(it=>`<button class="piece" data-open="${it.id}" style="border:0;background:none;padding:0;text-align:left">${thumbHTML(it)}<span>${esc(it.name)}</span></button>`).join('')}</div>
     <ul class="reasons">${c.pos.map(p=>`<li>${esc(p)}</li>`).join('')}${c.neg.map(p=>`<li class="neg">${esc(p)}</li>`).join('')}</ul>
-    ${c.accTip&&c.accTip.length?`<div class="acc-tip"><span class="label">Gợi ý giày, túi, phụ kiện</span><span>${c.accTip.map(esc).join(' · ')}</span></div>`:''}
+    ${c.accTip&&c.accTip.length?`<div class="acc-tip"><span class="label">Gợi ý giày, túi, phụ kiện</span><ul>${c.accTip.map(t=>`<li>${esc(t.charAt(0).toUpperCase()+t.slice(1))}</li>`).join('')}</ul></div>`:''}
     <div class="row"><button class="btn small" data-wear="${all.map(x=>x.id).join(',')}">Mặc bộ này hôm nay</button></div>
   </article>`;
 }
