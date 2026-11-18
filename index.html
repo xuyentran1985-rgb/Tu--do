@@ -99,13 +99,20 @@ section{display:flex;flex-direction:column;gap:12px;margin-top:8px}
 .wx-head{font-weight:600;font-size:15px}
 .wx-sub{font-weight:400;color:var(--muted);font-size:12.5px;display:block}
 .wx ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
+.pill.style{background:var(--surface);border:1px solid var(--line);color:var(--ink);font-weight:500}
+.strip{display:flex;gap:8px;overflow-x:auto;padding-block:2px 8px;scrollbar-width:none}
+.strip::-webkit-scrollbar{display:none}
+.strip-item{flex:none;width:64px;border:2px solid transparent;border-radius:12px;padding:0;background:none;overflow:hidden}
+.strip-item .thumb{aspect-ratio:1;border-radius:10px;overflow:hidden}
+.strip-item .tag-sample{display:none}
+.strip-item[aria-pressed="true"]{border-color:var(--accent)}
 .tips{background:var(--surface);border-radius:16px;padding:14px;box-shadow:var(--shadow);font-size:13.5px}
 .tips ul{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
 /* tab bar */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
   padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));padding-top:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px));
-  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
-nav.tabs .tab{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--muted);padding:6px 0}
+  display:grid;grid-template-columns:1fr 1fr auto 1fr 1fr;align-items:center;gap:4px}
+nav.tabs .tab{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11.5px;white-space:nowrap;color:var(--muted);padding:6px 0}
 nav.tabs .tab[aria-current="page"]{color:var(--accent);font-weight:600}
 nav.tabs .tab svg{width:22px;height:22px}
 .fab{width:54px;height:54px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;box-shadow:0 6px 18px rgba(180,70,111,.35);margin-top:-22px}
@@ -150,10 +157,14 @@ input[type=text],select{width:100%;border:1px solid var(--line);background:var(-
 <nav class="tabs" aria-label="Chuyển màn">
   <button class="tab" id="tab-tu" data-tab="tu">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 5a2 2 0 1 1 2 2c-1 0-2 .6-2 1.6V9M12 9 3 15.5c-.8.6-.4 1.5.5 1.5h17c.9 0 1.3-.9.5-1.5L12 9Z"/></svg>Tủ đồ</button>
-  <button class="fab" id="add" aria-label="Thêm món đồ">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
   <button class="tab" id="tab-phoi" data-tab="phoi">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3l1.8 4.6L18.5 9l-4.7 1.5L12 15l-1.8-4.5L5.5 9l4.7-1.4L12 3ZM18 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8.8-2Z"/></svg>Phối đồ</button>
+  <button class="fab" id="add" aria-label="Thêm món đồ">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+  <button class="tab" id="tab-mua" data-tab="mua">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M5 8h14l-1.2 12H6.2L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>Nên mua?</button>
+  <button class="tab" id="tab-dl" data-tab="dl">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="5" y="7" width="14" height="13" rx="2"/><path d="M9 7V5h6v2M9 11v5M15 11v5"/></svg>Du lịch</button>
 </nav>
 <div id="layer"></div>
 <input id="f-restore" type="file" accept="application/json,.json" hidden>
@@ -265,6 +276,30 @@ const RISES = [['cao','Cạp cao',10,'Cạp cao kéo dài chân, lộ eo'],['vua
 const OCC = [['lam','Đi làm'],['choi','Đi chơi'],['hen','Hẹn hò'],['tiec','Tiệc'],['nha','Ở nhà, đi chợ']];
 const WEATHER = [['nong','Trời nóng'],['mat','Trời mát'],['lanh','Trời lạnh']];
 
+/* ---------- Xu hướng & phong cách (đọc từ trends.json, cập nhật hằng tháng) ---------- */
+let TR=null, TRIP_BONUS=null;
+async function loadTrends(){ try{const r=await fetch('trends.json',{cache:'no-cache'}); if(r.ok){TR=await r.json(); if(S.mode!=='loading')render()}}catch{} }
+function trendNote(i){
+  if(!TR)return null;
+  for(const p of TR.pieces||[]){ if(p.cat!==i.cat)continue; if((p.shapes&&p.shapes.includes(i.shape))||(p.lengths&&p.lengths.includes(i.length)))return p.note }
+  const f=(TR.fabrics||[]).find(f=>f.id===i.fabric); if(f)return f.note;
+  const c=(TR.colors||[]).find(c=>c.id===i.color); if(c&&CAT[i.cat]?.near)return c.note;
+  return null;
+}
+function styleFit(items,id){
+  const st=TR&&TR.styles&&TR.styles[id]; if(!st)return {pts:0,why:[]};
+  let pts=0; const why=[];
+  for(const i of items){
+    if(st.colors.includes(i.color))pts+=2;
+    if(st.shapes.includes(i.shape)){pts+=2; const o=shapeOf(i); if(o&&why.length<2)why.push(o[1].toLowerCase())}
+    if(i.fabric&&st.fabrics.includes(i.fabric))pts+=2;
+    if(i.length&&st.lengths.includes(i.length))pts+=1;
+  }
+  if(st.monochrome&&items.length>1){const d=items.map(i=>C[i.color]?.d); if(items.every(i=>i.color===items[0].color)||d.every(x=>x===d[0])){pts+=4;why.push('phối cùng tông')}}
+  return {pts:pts/items.length*2,why};
+}
+function bestStyle(items){ if(!TR)return null; let b=null; for(const id of Object.keys(TR.styles||{})){const f=styleFit(items,id); if(!b||f.pts>b.pts)b={id,...f}} return b&&b.pts>=4?b:null }
+
 /* ---------- Thời tiết Hà Nội ---------- */
 let WX=null; // {temp,feels,hum,tmin,tmax,rainProb,rainNow,src}
 const HN_AVG={1:17,2:18,3:21,4:25,5:29,6:31,7:31,8:30,9:29,10:27,11:23,12:19};
@@ -370,7 +405,7 @@ function mix(hex){ // nền nhạt cùng tông màu món đồ
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 /* ---------- Lưu trữ: ngay trên điện thoại (IndexedDB), có sao lưu ra file ---------- */
-const S = {items:[], mode:'loading', tab:'tu', cat:'all', occ:'lam', weather:'nong', pin:null, more:false, editing:null, confirmDel:false, err:''};
+const S = {items:[], mode:'loading', style:(()=>{try{return localStorage.getItem('style')||'all'}catch{return 'all'}})(), tab:'tu', cat:'all', occ:'lam', weather:'nong', pin:null, more:false, editing:null, confirmDel:false, err:''};
 let idb=null;
 function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('tu-do',1);r.onupgradeneeded=()=>r.result.createObjectStore('items',{keyPath:'id'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
 function tx(mode,fn){return new Promise((res,rej)=>{const t=idb.transaction('items',mode);const st=t.objectStore('items');const out=fn(st);t.oncomplete=()=>res(out&&out.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)})}
@@ -477,6 +512,11 @@ function buildOutfits(){
     }
     // dồn ưu điểm của từng món
     for(const i of main){ const r=rated.get(i.id); if(r.pos[0])pos.push(r.pos.find(p=>!p.startsWith(C[i.color]?.name||'§'))||r.pos[0]); if(r.neg[0])neg.push(r.neg[0]) }
+    if(TRIP_BONUS){const tb=TRIP_BONUS(main); s+=tb.s; pos.unshift(...tb.pos); neg.push(...tb.neg)}
+    // xu hướng
+    let tr=0; for(const i of main){const n=trendNote(i); if(n&&tr<6){tr+=3; pos.push(n)}} s+=tr;
+    // phong cách
+    if(S.style!=='all'&&TR&&TR.styles[S.style]){ const f=styleFit(main,S.style); s+=Math.min(12,f.pts)-5; if(f.pts>=5)pos.unshift(`Đúng chất ${TR.styles[S.style].name.toLowerCase()}${f.why.length?': '+f.why.join(', '):''}`) }
     return {s,pos,neg};
   };
   for(const t of tops)for(const b of lows){ combos.push({main:[t,b],...scoreCombo([t,b])}) }
@@ -499,7 +539,7 @@ function buildOutfits(){
     }
     if(bags.length) c.extra.push(bags[idx%bags.length]);
     c.pos=[...new Set(c.pos)].slice(0,4); c.neg=[...new Set(c.neg)].slice(0,2);
-    c.s=Math.max(5,Math.min(100,Math.round(c.s)));
+    c.s=Math.max(5,Math.min(100,Math.round(c.s))); c.styleTag=S.style!=='all'?S.style:bestStyle(c.main)?.id;
   });
   return {out,counts:{tops:tops.length,lows:lows.length,dresses:dresses.length}};
 }
@@ -509,8 +549,10 @@ const main=document.getElementById('main');
 function render(){
   document.getElementById('tab-tu').setAttribute('aria-current',S.tab==='tu'?'page':'false');
   document.getElementById('tab-phoi').setAttribute('aria-current',S.tab==='phoi'?'page':'false');
+  document.getElementById('tab-mua').setAttribute('aria-current',S.tab==='mua'?'page':'false');
+  document.getElementById('tab-dl').setAttribute('aria-current',S.tab==='dl'?'page':'false');
   if(S.mode==='loading'){main.innerHTML=`<div class="empty"><h2>Đang mở tủ đồ của bạn…</h2><p>Các món đồ đã lưu sẽ hiện ở đây.</p></div>`;return}
-  main.innerHTML=(S.err?`<div class="banner">${esc(S.err)}</div>`:'')+(S.tab==='tu'?viewWardrobe():viewOutfits());
+  main.innerHTML=(S.err?`<div class="banner">${esc(S.err)}</div>`:'')+(S.tab==='tu'?viewWardrobe():S.tab==='mua'?viewShop():S.tab==='dl'?viewTravel():viewOutfits());
 }
 function viewWardrobe(){
   if(!S.items.length) return `<section><div class="empty">
@@ -562,30 +604,139 @@ function missingText(c){
   if(!c.tops&&!c.dresses) return have+' Cần thêm ít nhất <b>1 áo</b> để ghép với quần/chân váy.';
   return have+' Thử thêm vài món nữa nhé.';
 }
+/* ---------- Có nên mua? ---------- */
+function viewShop(){
+  const st=S.style!=='all'&&TR?TR.styles[S.style]?.name:null;
+  return `<section>
+    <div class="empty"><h2>Có nên mua món này?</h2>
+      <p>Chụp món bạn định mua (ở cửa hàng hoặc ảnh chụp màn hình trên mạng). App xem món đó có hợp dáng quả lê, da True Summer${st?`, phong cách ${st.toLowerCase()}`:''} không, phối được với bao nhiêu đồ trong tủ, và tủ đã có món giống chưa.</p>
+      <div class="row"><button class="btn" data-act="shop">Chụp món định mua</button></div></div>
+    ${TR?`<div class="tips"><div class="label">Xu hướng ${esc(TR.season)} · cập nhật ${new Date(TR.updated).toLocaleDateString('vi-VN')}</div><p style="margin:6px 0 0">${esc(TR.summary)}</p>${TR.warmTrendColors?`<p class="hint" style="margin:6px 0 0">${esc(TR.warmTrendColors)}</p>`:''}</div>`:''}
+  </section>`;
+}
+function computeAdvice(e){
+  const it={...e,id:'__shop'}; const r=rateItem(it); const pos=[...r.pos.slice(0,3)], neg=[...r.neg.slice(0,3)]; let s=r.s;
+  const tn=trendNote(it); if(tn){s+=6;pos.push(tn)}
+  if(TR){ const sid=S.style!=='all'?S.style:bestStyle([it])?.id; if(sid){const f=styleFit([it],sid); if(f.pts>=5){s+=5;pos.push(`Hợp phong cách ${TR.styles[sid].name.toLowerCase()} bạn thích`)} else if(S.style!=='all'){s-=4;neg.push(`Chưa đúng phong cách ${TR.styles[sid].name.toLowerCase()}`)}} }
+  // phối được với bao nhiêu món
+  const keep={items:S.items,pin:S.pin}; let partners=0, good=0;
+  try{ S.items=[...keep.items,it];
+    if(['top','bottom','skirt','dress'].includes(it.cat)){ S.pin='__shop'; const out=buildOutfits().out.filter(c=>c.s>=66); good=out.length; partners=new Set(out.flatMap(c=>c.main.map(x=>x.id)).filter(id=>id!=='__shop')).size }
+    else { S.pin=null; good=buildOutfits().out.filter(c=>c.extra.some(x=>x.id==='__shop')).length; partners=good }
+  } finally { S.items=keep.items; S.pin=keep.pin }
+  if(['top','bottom','skirt','dress'].includes(it.cat)){
+    if(it.cat==='dress'){ if(good){s+=6;pos.push('Váy liền mặc được ngay, không cần phối thêm')} }
+    else if(partners>=3){s+=10;pos.push(`Phối đẹp được với ${partners} món đang có trong tủ`)}
+    else if(partners>=1){s+=4;pos.push(`Phối được với ${partners} món trong tủ`)}
+    else {s-=10;neg.push('Chưa phối đẹp được với món nào trong tủ, mua về dễ nằm im')}
+  } else if(good){s+=4;pos.push(`Đi kèm được ${good} bộ trong tủ`)}
+  const dupes=S.items.filter(x=>x.cat===it.cat&&(x.color===it.color||(C[x.color]?.d===C[it.color]?.d&&x.shape===it.shape)));
+  if(dupes.length){s-=8*Math.min(2,dupes.length);neg.push(`Tủ đã có món gần giống: ${dupes.slice(0,2).map(x=>x.name).join(', ')}`)}
+  s=Math.max(5,Math.min(100,Math.round(s)));
+  let v=s>=80?{k:4,t:'Nên mua'}:s>=62?{k:2,t:'Cân nhắc thêm'}:{k:1,t:'Không nên mua'};
+  if(dupes.length&&s>=62){s=Math.min(s,74); v.k=2; v.t='Cân nhắc thêm'}
+  return {s,v,pos,neg,dupes:dupes.map(x=>x.id)};
+}
+
+/* ---------- Phối đồ du lịch ---------- */
+const SCENES={
+  bien:{name:'Biển',words:['biển','bien','phú quốc','phu quoc','nha trang','đà nẵng','da nang','quy nhơn','vũng tàu','côn đảo','hạ long','cát bà','mũi né','hội an','bali','phuket','maldives'],
+    pop:['hong-dau','mam-xoi','trang-nga','lavender','hong-phan','trang'],avoid:['xanh-baby','mint','teal-diu'],
+    tip:'Nền xanh biển, cát trắng: mặc hồng dâu, đỏ mâm xôi hay trắng ngà sẽ nổi bật. Váy maxi bay trong gió lên ảnh rất đẹp, nhưng nên chọn dáng chữ A che hông.',
+    bring:['Đồ bơi kèm khăn choàng/váy quấn','Kính râm, mũ rộng vành','Sandal quai mảnh','Kem chống nắng']},
+  nui:{name:'Núi, đồi thông',words:['đà lạt','da lat','sa pa','sapa','mộc châu','hà giang','tam đảo','mù cang chải','tây bắc','núi','đồi','rừng','bảo lộc','măng đen'],
+    pop:['hong-phan','hong-dau','trang-nga','lavender','mam-xoi','xanh-baby'],avoid:['teal-diu','mint','xam-xanh'],
+    tip:'Nền xanh lá, sương mù: chọn hồng phấn, hồng dâu, trắng ngà, lavender cho nổi; tránh xanh lá, xanh rêu bị chìm vào cảnh.',
+    bring:['Áo khoác dáng dài hoặc len dày','Khăn quàng màu hồng/lavender (vừa ấm vừa lên ảnh)','Bốt hoặc giày kín đế bám','Mũ len']},
+  pho:{name:'Phố cổ, thành phố',words:['phố cổ','hội an','hà nội','sài gòn','hồ chí minh','huế','seoul','tokyo','paris','bangkok','singapore','đài bắc','hong kong','thành phố','phố'],
+    pop:['navy','trang-nga','xanh-baby','hong-phan','lavender','mam-xoi'],avoid:['kem','be-hong'],
+    tip:'Tường vàng, mái ngói, đèn lồng: navy, trắng ngà, xanh baby nổi bật mà vẫn sang. Tránh be, vàng trùng màu tường.',
+    bring:['Giày đi bộ êm (sneaker trắng, búp bê)','Túi đeo chéo gọn','Áo khoác mỏng cho tối']},
+  lua:{name:'Đồng lúa, đồng hoa',words:['đồng lúa','ruộng','tam cốc','ninh bình','hoa','cánh đồng','mai châu','pù luông'],
+    pop:['trang-nga','hong-phan','xanh-baby','lavender','hong-dau'],avoid:['kem','be-hong','mint'],
+    tip:'Nền lúa vàng hoặc xanh: váy trắng ngà, hồng phấn, xanh baby trông rất trong trẻo. Váy midi xòe che hông và lên ảnh mềm mại.',
+    bring:['Mũ cói','Váy midi xòe','Giày búp bê hoặc sandal đế bằng']},
+  tuyet:{name:'Xứ lạnh, tuyết',words:['tuyết','hokkaido','nhật','hàn','châu âu','thụy sĩ','phần lan','mông cổ'],
+    pop:['mam-xoi','hong-dau','navy','tim-than','lavender'],avoid:['trang','trang-nga','xam-nhat'],
+    tip:'Nền trắng tuyết: áo khoác mâm xôi, hồng dâu, navy sẽ nổi bật hẳn. Tránh áo trắng, xám nhạt vì bị chìm.',
+    bring:['Áo khoác dày dáng dài','Giữ nhiệt, tất len','Bốt chống trơn','Găng tay, mũ len']},
+};
+function guessScene(t){t=(t||'').toLowerCase(); for(const [k,v] of Object.entries(SCENES)) if(v.words.some(w=>t.includes(w)))return k; return 'pho'}
+const TRIP={place:'',days:3,scene:null,result:null,loading:false};
+async function planTrip(){
+  TRIP.loading=true; TRIP.result=null; render();
+  const scene=TRIP.scene||guessScene(TRIP.place); const sc=SCENES[scene];
+  let wx=null, where=TRIP.place;
+  try{
+    const g=await (await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&language=vi&name='+encodeURIComponent(TRIP.place))).json();
+    const loc=g.results&&g.results[0];
+    if(loc){ where=[loc.name,loc.country].filter(Boolean).join(', ');
+      const f=await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=${Math.min(16,TRIP.days)}`)).json();
+      const d=f.daily; const avg=a=>Math.round(a.reduce((x,y)=>x+y,0)/a.length);
+      wx={tmin:Math.min(...d.temperature_2m_min).toFixed?Math.round(Math.min(...d.temperature_2m_min)):null,tmax:Math.round(Math.max(...d.temperature_2m_max)),rain:avg(d.precipitation_probability_max.map(x=>x??0)),day:avg(d.temperature_2m_max)} }
+  }catch{}
+  const kind=wx?(wx.day>=28?'nong':wx.day>=20?'mat':'lanh'):(scene==='tuyet'?'lanh':scene==='nui'?'lanh':scene==='bien'?'nong':'mat');
+  // chấm thêm điểm "lên ảnh đẹp" theo cảnh
+  const keep={w:S.weather,occ:S.occ,pin:S.pin,wm:S.weatherManual};
+  TRIP_BONUS=main=>{const r={s:0,pos:[],neg:[]}; for(const i of main){ if(!['top','dress','outer'].includes(i.cat)&&main.length>1)continue;
+    if(sc.pop.includes(i.color)){r.s+=8;r.pos.push(`${C[i.color].name} nổi bật trên nền ${sc.name.toLowerCase()}, lên ảnh đẹp`)}
+    else if(sc.avoid.includes(i.color)){r.s-=6;r.neg.push(`${C[i.color].name} dễ chìm vào nền ${sc.name.toLowerCase()}`)} } return r};
+  let out=[];
+  try{ S.weather=kind; S.occ='choi'; S.pin=null; out=buildOutfits().out }
+  finally{ S.weather=keep.w; S.occ=keep.occ; S.pin=keep.pin; TRIP_BONUS=null }
+  // mỗi ngày một bộ, hạn chế lặp áo
+  const days=[], usedTop=new Map();
+  for(const c of out){ if(days.length>=TRIP.days)break; const t=c.main[0].id; if((usedTop.get(t)||0)>=Math.ceil(TRIP.days/Math.max(1,new Set(out.map(o=>o.main[0].id)).size)))continue; usedTop.set(t,(usedTop.get(t)||0)+1); days.push(c) }
+  for(const c of out){ if(days.length>=TRIP.days)break; if(!days.includes(c))days.push(c) }
+  const pack=[...new Map(days.flatMap(c=>[...c.main,...c.extra]).map(i=>[i.id,i])).values()];
+  const extra=[...sc.bring]; if(wx&&wx.rain>=40)extra.unshift('Áo mưa gọn hoặc ô gấp (khả năng mưa '+wx.rain+'%)'); if(wx&&wx.tmin<=15&&!extra.some(x=>x.includes('khoác')))extra.unshift('Áo khoác ấm, tối xuống '+wx.tmin+'°');
+  TRIP.result={where,scene,wx,kind,days,pack,extra}; TRIP.loading=false; render();
+}
+function viewTravel(){
+  const sc=TRIP.scene||guessScene(TRIP.place); const R=TRIP.result;
+  let html=`<section><div class="empty"><h2>Phối đồ du lịch</h2>
+    <p>Gõ nơi bạn sắp đi, app xem thời tiết ở đó và chọn đồ trong tủ sao cho hợp cảnh, lên ảnh đẹp.</p>
+    <div class="field"><label for="f-place">Đi đâu?</label><input id="f-place" type="text" placeholder="Ví dụ: Đà Lạt, Phú Quốc, Sa Pa, Seoul" value="${esc(TRIP.place)}" autocomplete="off"></div>
+    <div class="field"><span class="label">Mấy ngày?</span><div class="opts">${[2,3,4,5,7].map(n=>`<button type="button" class="chip" data-days="${n}" aria-pressed="${TRIP.days===n}">${n} ngày</button>`).join('')}</div></div>
+    <div class="field"><span class="label">Cảnh chụp chính${TRIP.place&&!TRIP.scene?' (app tự đoán)':''}</span><div class="opts">${Object.entries(SCENES).map(([k,v])=>`<button type="button" class="chip" data-scene="${k}" aria-pressed="${sc===k}">${v.name}</button>`).join('')}</div></div>
+    <div class="row"><button class="btn" data-act="trip" ${TRIP.loading?'disabled':''}>${TRIP.loading?'Đang tìm…':'Gợi ý đồ mang theo'}</button></div></div>`;
+  if(R){
+    const s2=SCENES[R.scene];
+    html+=`<div class="wx"><div class="wx-head">${esc(R.where)}${R.wx?` · ${R.wx.tmin}–${R.wx.tmax}° <span class="wx-sub">khả năng mưa khoảng ${R.wx.rain}% trong ${TRIP.days} ngày tới</span>`:' <span class="wx-sub">chưa lấy được thời tiết, app ước lượng theo loại cảnh</span>'}</div><ul><li>${esc(s2.tip)}</li></ul></div>`;
+    if(!R.days.length) html+=`<div class="empty"><p>${missingText({tops:S.items.filter(i=>i.cat==='top').length,lows:S.items.filter(i=>i.cat==='bottom'||i.cat==='skirt').length,dresses:S.items.filter(i=>i.cat==='dress').length})}</p></div>`;
+    html+=R.days.map((c,i)=>outfitHTML(c,i).replace(i===0?'Gợi ý tốt nhất':'Bộ số '+(i+1),'Ngày '+(i+1))).join('');
+    if(R.days.length) html+=`<div class="tips"><div class="label">Danh sách mang theo</div><ul>${R.pack.map(i=>`<li>${esc(i.name)}</li>`).join('')}${R.extra.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`;
+  }
+  return html+'</section>';
+}
+
 function viewOutfits(){
   const ctl=`<div class="controls">
     ${wxHTML()}
+    ${TR?`<div class="label">Phong cách</div><div class="chips">${[['all','Tất cả'],...Object.entries(TR.styles).map(([k,v])=>[k,v.name])].map(([k,n])=>`<button class="chip" data-style="${k}" aria-pressed="${S.style===k}">${n}</button>`).join('')}</div>`:''}
     <div class="label">Hôm nay đi đâu?</div>
     <div class="chips">${OCC.map(([k,n])=>`<button class="chip" data-occ="${k}" aria-pressed="${S.occ===k}">${n}</button>`).join('')}</div>
     <div class="chips">${WEATHER.map(([k,n])=>`<button class="chip" data-w="${k}" aria-pressed="${S.weather===k}">${n}</button>`).join('')}</div>
   </div>`;
   const pinIt=S.pin&&S.items.find(i=>i.id===S.pin);
+  const mains=S.items.filter(i=>['top','bottom','skirt','dress'].includes(i.cat));
+  const strip=mains.length?`<div class="label">Hôm nay muốn mặc món nào? <span style="text-transform:none;letter-spacing:0;font-weight:400">Chạm để xem cách phối đẹp nhất</span></div><div class="strip">${mains.map(i=>`<button class="strip-item" data-pin="${i.id}" aria-pressed="${S.pin===i.id}" aria-label="Phối với ${esc(i.name)}">${thumbHTML(i)}</button>`).join('')}</div>`:'';
   const pin=pinIt?`<div class="pinned">${thumbHTML(pinIt)}<div style="flex:1;min-width:0">Đang phối quanh <b>${esc(pinIt.name)}</b></div><button class="btn ghost small" data-act="unpin">Bỏ chọn</button></div>`:'';
   if(!S.items.length) return `<section>${ctl}<div class="empty"><h2>Chưa có đồ để phối</h2><p>Thêm vài cái áo và quần hoặc váy, hoặc thử với bộ mẫu.</p><div class="row"><button class="btn" data-act="add">Thêm món đồ</button><button class="btn ghost" data-act="samples">Thử với 13 món mẫu</button></div></div></section>`;
   const {out,counts}=buildOutfits();
   if(!out.length){
-    return `<section>${ctl}${pin}<div class="empty"><h2>Chưa ghép được bộ nào</h2><p>${missingText(counts)}</p><div class="row"><button class="btn" data-act="add">Thêm món đồ</button></div></div></section>`;
+    return `<section>${ctl}${strip}${pin}<div class="empty"><h2>Chưa ghép được bộ nào</h2><p>${missingText(counts)}</p><div class="row"><button class="btn" data-act="add">Thêm món đồ</button></div></div></section>`;
   }
-  const shown=S.more?out:out.slice(0,4);
-  return `<section>${ctl}${pin}
+  const shown=S.more?out:out.slice(0,S.pin?6:4);
+  return `<section>${ctl}${strip}${pin}
     ${shown.map((c,i)=>outfitHTML(c,i)).join('')}
-    ${out.length>4&&!S.more?`<button class="btn ghost" data-act="more">Xem thêm ${out.length-4} bộ</button>`:''}
+    ${out.length>shown.length&&!S.more?`<button class="btn ghost" data-act="more">Xem thêm ${out.length-shown.length} bộ</button>`:''}
   </section>`;
 }
 function outfitHTML(c,i){
   const v=verdict(c.s); const all=[...c.main,...c.extra];
   return `<article class="outfit${i===0?' hero':''}">
-    <div class="outfit-head"><div><div class="label">${i===0?'Gợi ý tốt nhất':'Bộ số '+(i+1)}</div><span class="pill v${v.k}">${v.t}</span></div>
+    <div class="outfit-head"><div><div class="label">${i===0?'Gợi ý tốt nhất':'Bộ số '+(i+1)}</div><div class="row" style="gap:6px"><span class="pill v${v.k}">${v.t}</span>${c.styleTag&&TR?`<span class="pill style">${TR.styles[c.styleTag].name}</span>`:''}</div></div>
       <div class="scorebar" title="Độ hợp ${c.s}/100"><i style="width:${c.s}%"></i></div></div>
     <div class="pieces">${all.map(it=>`<button class="piece" data-open="${it.id}" style="border:0;background:none;padding:0;text-align:left">${thumbHTML(it)}<span>${esc(it.name)}</span></button>`).join('')}</div>
     <ul class="reasons">${c.pos.map(p=>`<li>${esc(p)}</li>`).join('')}${c.neg.map(p=>`<li class="neg">${esc(p)}</li>`).join('')}</ul>
@@ -595,8 +746,8 @@ function outfitHTML(c,i){
 
 /* ---------- Bảng thêm / sửa món ---------- */
 const layer=document.getElementById('layer');
-function openSheet(it){
-  S.editing = it? {...it,occ:[...(it.occ||[])]} : {id:uid(),name:'',cat:'top',shape:'v',color:'',occ:['lam','choi'],season:'ca-nam',isNew:true};
+function openSheet(it,shop){
+  S.editing = it? {...it,occ:[...(it.occ||[])]} : {id:uid(),name:'',cat:'top',shape:'v',color:'',occ:['lam','choi'],season:'ca-nam',isNew:true,shop:!!shop};
   S.confirmDel=false; drawSheet();
 }
 function closeSheet(){S.editing=null;layer.innerHTML='';document.body.style.overflow=''}
@@ -606,7 +757,7 @@ function drawSheet(){
   const grp=(g,t)=>`<div class="groupname">${t}</div><div class="swatches">${COLORS.filter(c=>c.g===g||(g==='tt'&&c.g==='den')).map(c=>`<button type="button" class="sw" data-color="${c.id}" aria-pressed="${e.color===c.id}"><b class="${c.g==='tranh'?'tranh':''}" style="background:${c.hex}"></b>${c.name}</button>`).join('')}</div>`;
   const keepScroll=layer.querySelector('.sheet')?.scrollTop||0;
   layer.innerHTML=`<div class="scrim" data-act="scrim"><form class="sheet" id="sheet" role="dialog" aria-label="${e.isNew?'Thêm món đồ':'Sửa món đồ'}">
-    <div class="sheet-head"><h2>${e.isNew?'Thêm món đồ':'Món đồ'}</h2><button type="button" class="x" data-act="close" aria-label="Đóng">×</button></div>
+    <div class="sheet-head"><h2>${e.shop?'Có nên mua?':e.isNew?'Thêm món đồ':'Món đồ'}</h2><button type="button" class="x" data-act="close" aria-label="Đóng">×</button></div>
     <div class="photo-drop">${thumbHTML(e)}<div class="col">
       <label class="btn ghost small" for="f-photo" style="text-align:center">${e.photo?'Đổi ảnh':'Chụp hoặc chọn ảnh'}</label>
       <input id="f-photo" type="file" accept="image/*" hidden>
@@ -627,9 +778,10 @@ function drawSheet(){
     <div class="field"><span class="label">Mặc vào dịp nào</span><div class="opts">${OCC.map(([k,n])=>`<button type="button" class="chip" data-eocc="${k}" aria-pressed="${e.occ.includes(k)}">${n}</button>`).join('')}</div></div>
     <div class="field"><span class="label">Chất liệu</span><div class="opts">${FABRICS.map(([k,n])=>`<button type="button" class="chip" data-fabric="${k}" aria-pressed="${e.fabric===k}">${n}</button>`).join('')}</div></div>
     <div class="field"><span class="label">Mùa</span><div class="opts">${SEASONS.map(([k,n])=>`<button type="button" class="chip" data-season="${k}" aria-pressed="${e.season===k}">${n}</button>`).join('')}</div></div>
+    ${e.shop&&e.advice?`<div class="verdict" id="advice"><span class="pill v${e.advice.v.k}" style="font-size:14px">${e.advice.v.t} · ${e.advice.s}/100</span><ul class="reasons">${e.advice.pos.map(p=>`<li>${esc(p)}</li>`).join('')}${e.advice.neg.map(p=>`<li class="neg">${esc(p)}</li>`).join('')}</ul><div class="row"><button type="button" class="btn ghost small" data-act="shop-buy">Mua rồi, thêm vào tủ</button></div></div>`:''}
     ${e.lastWorn?`<div class="hint">Mặc lần gần nhất: ${new Date(e.lastWorn).toLocaleDateString('vi-VN')} · đã mặc ${e.worn||1} lần</div>`:''}
     <div class="row">
-      <button type="submit" class="btn" style="flex:1">${e.isNew?'Lưu vào tủ':'Lưu thay đổi'}</button>
+      <button type="submit" class="btn" style="flex:1">${e.shop?(e.advice?'Xem lại tư vấn':'Xem tư vấn'):e.isNew?'Lưu vào tủ':'Lưu thay đổi'}</button>
       ${!e.isNew?`<button type="button" class="btn ghost" data-act="pin">Phối với món này</button>`:''}
     </div>
     ${!e.isNew?(S.confirmDel?`<div class="confirm">Xóa hẳn món này?<button type="button" class="btn danger small" data-act="del-yes">Xóa</button><button type="button" class="btn ghost small" data-act="del-no">Giữ lại</button></div>`:`<div><button type="button" class="btn danger small" data-act="del">Xóa khỏi tủ</button></div>`):''}
@@ -750,9 +902,10 @@ async function fixAutoNames(){ // sửa tên tự đặt bị lệch loại (vd.
 }
 async function saveSheet(){
   readName(); const e=S.editing;
+  if(e.shop){ if(!e.color){toast('Chọn màu chính cho món đồ nhé.');return} e.advice=computeAdvice(e); drawSheet(); setTimeout(()=>document.getElementById('advice')?.scrollIntoView({block:'center',behavior:'smooth'}),50); return }
   if(!e.color){toast('Chọn màu chính cho món đồ nhé.');return}
   if(!e.name.trim()||isAutoName(e.name)) e.name=autoName(e);
-  const {isNew,guess,catGuess,catTouched,cands,picking,...it}=e; if(isNew)it.created=Date.now();
+  const {isNew,guess,catGuess,catTouched,cands,picking,shop,advice,...it}=e; if(isNew)it.created=Date.now();
   if(isNew) delete it.sample;
   try{ await putItem(it); closeSheet(); toast(isNew?'Đã thêm vào tủ.':'Đã lưu.') }catch{}
 }
@@ -760,12 +913,16 @@ async function saveSheet(){
 /* ---------- Sự kiện ---------- */
 document.addEventListener('click',async ev=>{
   if(ev.target.id==='pick-img'){pickColorAt(ev);return}
-  const t=ev.target.closest('[data-tab],[data-act],[data-cat],[data-open],[data-occ],[data-w],[data-wear],[data-ecat],[data-shape],[data-rise],[data-len],[data-color],[data-eocc],[data-season],[data-fabric]');
+  const t=ev.target.closest('[data-tab],[data-act],[data-cat],[data-open],[data-occ],[data-w],[data-wear],[data-ecat],[data-shape],[data-rise],[data-len],[data-color],[data-eocc],[data-season],[data-fabric],[data-style],[data-days],[data-scene],[data-pin]');
   if(!t){return}
   const d=t.dataset;
   if(d.act==='scrim'&&ev.target!==t)return;
   if(d.tab){S.tab=d.tab;S.more=false;render();window.scrollTo(0,0);return}
   if(d.cat){S.cat=d.cat;render();return}
+  if(d.pin){S.pin=S.pin===d.pin?null:d.pin;S.more=false;render();document.querySelector('.pinned')?.scrollIntoView({block:'start',behavior:'smooth'});return}
+  if(d.days){TRIP.days=+d.days;render();return}
+  if(d.scene){TRIP.scene=d.scene;render();return}
+  if(d.style){S.style=d.style;S.more=false;try{localStorage.setItem('style',d.style)}catch{} render();return}
   if(d.occ){S.occ=d.occ;S.more=false;render();return}
   if(d.w){S.weather=d.w;S.weatherManual=true;S.more=false;render();return}
   if(d.open){if(S.editing)return; const it=S.items.find(i=>i.id===d.open); if(it)openSheet(it);return}
@@ -788,6 +945,9 @@ document.addEventListener('click',async ev=>{
     case 'samples': await addSamples();break;
     case 'rm-samples': await removeSamples();break;
     case 'wx-auto': S.weatherManual=false; if(WX)S.weather=wxKind(WX); render();break;
+    case 'trip': TRIP.place=(document.getElementById('f-place')?.value||'').trim(); if(!TRIP.place){toast('Gõ nơi bạn sắp đi nhé.');break} await planTrip(); break;
+    case 'shop': openSheet(null,true); break;
+    case 'shop-buy': readName(); S.editing.shop=false; S.editing.advice=null; await saveSheet(); break;
     case 'more': S.more=true;render();break;
     case 'unpin': S.pin=null;render();break;
     case 'rot': rotatePhoto();break;
@@ -800,12 +960,13 @@ document.addEventListener('click',async ev=>{
   }
 });
 document.getElementById('add').addEventListener('click',()=>openSheet(null));
+document.addEventListener('input',e=>{if(e.target.id==='f-place'){TRIP.place=e.target.value; if(!TRIP.scene){const g=guessScene(TRIP.place); document.querySelectorAll('[data-scene]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.scene===g))}}});
 document.addEventListener('change',e=>{if(e.target.id==='f-photo')handlePhoto(e.target.files[0]); if(e.target.id==='f-restore'&&e.target.files[0]){importBackup(e.target.files[0]);e.target.value=''}});
 document.addEventListener('submit',e=>{e.preventDefault(); if(e.target.id==='sheet')saveSheet()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.editing)closeSheet()});
 let tt; function toast(m){let el=document.querySelector('.toast'); if(!el){el=document.createElement('div');el.className='toast';el.setAttribute('role','status');document.body.appendChild(el)} el.textContent=m; clearTimeout(tt); tt=setTimeout(()=>el.remove(),2800)}
 
-render(); initStore(); loadWeather();
+render(); initStore(); loadWeather(); loadTrends();
 if('serviceWorker' in navigator&&location.protocol==='https:'){navigator.serviceWorker.register('sw.js').catch(()=>{})}
 </script>
 

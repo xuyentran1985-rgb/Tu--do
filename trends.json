@@ -1,0 +1,51 @@
+{
+  "updated": "2026-11-18",
+  "season": "Thu đông 2026",
+  "summary": "Mùa này chuộng quần ống rộng, chân váy midi, váy quấn, áo khoác dáng dài và blazer độn vai, chất satin bóng nhẹ, len xù và họa tiết kẻ ô. Màu nổi bật: tông berry (mâm xôi, tím mận), tím từ lavender đến tím than, hồng phấn kiểu 'Pink Frosting' và các tông xanh navy.",
+  "colors": [
+    {"id": "mam-xoi", "note": "Tông berry (mâm xôi, tím mận) là màu hot thu đông 2026"},
+    {"id": "tim-than", "note": "Tông berry, tím mận đang được ưa chuộng"},
+    {"id": "lavender", "note": "Tím, từ lavender đến tím đậm, được gọi là màu 'It' của mùa này"},
+    {"id": "hong-phan", "note": "Hồng phấn kiểu 'Pink Frosting' đang là xu hướng"},
+    {"id": "navy", "note": "Navy, xanh nửa đêm thuộc nhóm màu xu hướng mùa này"},
+    {"id": "xanh-baby", "note": "Tông xanh nước nhạt nằm trong nhóm màu xu hướng"}
+  ],
+  "warmTrendColors": "Nâu chocolate, xanh ô liu, đỏ cà chua cũng đang hot nhưng là tông ấm, không hợp da True Summer của bạn. Nếu thích, chỉ dùng ở giày, túi, xa mặt.",
+  "pieces": [
+    {"cat": "bottom", "shapes": ["rong", "suong"], "note": "Quần ống rộng, quần suông xếp ly đang là xu hướng thu đông 2026"},
+    {"cat": "skirt", "lengths": ["midi"], "note": "Chân váy midi, xếp tầng hoặc kẻ ô đang rất được ưa chuộng"},
+    {"cat": "dress", "shapes": ["wrap", "thateo"], "note": "Váy quấn, váy midi rủ mềm là xu hướng mùa này"},
+    {"cat": "outer", "shapes": ["dai"], "note": "Áo khoác dáng dài, blazer có độn vai đang hot"},
+    {"cat": "top", "shapes": ["v", "somi"], "note": "Áo rủ mềm, cổ V sâu thay cho sơ mi hộp cứng"},
+    {"cat": "shoes", "shapes": ["botcao", "muinhon"], "note": "Bốt cao cổ, giày gót thấp mũi nhọn đang thịnh hành"},
+    {"cat": "bag", "shapes": ["nho", "vua"], "note": "Túi dáng hộp, có quai xách gọn thay cho tote mềm"}
+  ],
+  "fabrics": [
+    {"id": "lua", "note": "Satin, chất có độ bóng nhẹ đang được ưa chuộng"},
+    {"id": "len", "note": "Len, cashmere, len xù là chất liệu của mùa"},
+    {"id": "da", "note": "Điểm nhấn da bóng đang hot"}
+  ],
+  "styles": {
+    "kinh-dien": {"name": "Kinh điển", "desc": "Đường cắt gọn, màu trung tính, dễ mặc nhiều năm",
+      "colors": ["navy", "trang-nga", "xam-than", "xam-nhat", "be-hong", "trang", "den", "xam-xanh"],
+      "shapes": ["somi", "v", "suong", "dung", "a", "dai", "muinhon", "vua", "nho"],
+      "fabrics": ["cotton", "kaki", "len", "lua"], "lengths": ["goi", "midi"]},
+    "thanh-lich": {"name": "Thanh lịch", "desc": "Mềm mại, nữ tính, màu dịu và chất liệu rủ",
+      "colors": ["lavender", "hong-phan", "trang-nga", "xanh-baby", "be-hong", "xam-xanh", "navy", "mint"],
+      "shapes": ["v", "vuong", "somi", "suong", "loe", "a", "xepl", "thateo", "wrap", "dai", "muinhon", "quaimanh", "nho"],
+      "fabrics": ["lua", "voan", "len"], "lengths": ["midi"]},
+    "tre-trung": {"name": "Trẻ trung", "desc": "Năng động, màu tươi, có điểm nhấn vui mắt",
+      "colors": ["hong-dau", "xanh-baby", "mint", "hong-phan", "lavender", "denim", "trang"],
+      "shapes": ["tron", "vuong", "thuyen", "loe", "rong", "xoe", "xepl", "babydoll", "crop", "sneaker", "bupbe", "nho"],
+      "fabrics": ["jean", "cotton", "thun"], "lengths": ["goi", "midi"]},
+    "hien-dai": {"name": "Hiện đại", "desc": "Tối giản, phối cùng tông, dáng rộng và chất liệu có điểm nhấn",
+      "colors": ["navy", "xam-than", "tim-than", "mam-xoi", "xam-xanh", "trang-nga", "teal-diu"],
+      "shapes": ["v", "vuong", "rong", "suong", "a", "wrap", "dai", "crop", "muinhon", "botcao", "vua"],
+      "fabrics": ["lua", "da", "len", "kaki"], "lengths": ["midi", "maxi"], "monochrome": true}
+  },
+  "sources": [
+    "https://www.womanandhome.com/fashion/fashion-news/autumn-winter-fashion-colour-trends-2026/",
+    "https://www.whowhatwear.com/fashion/trends/street-style-trend-predictions-autumn-2026",
+    "https://www.bustle.com/style/fall-2026-fashion-trends"
+  ]
+}
